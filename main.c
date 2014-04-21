@@ -1,0 +1,385 @@
+/*
+Projet-ISN
+
+Fichier: main.c
+
+Contenu: Fonction main() et fonctions de création du menu
+
+Actions: C'est ici que le programme commence et ... se termine. L'interface du menu est créée ici également.
+
+Bibliothèques utilisées: Bibliothèques standards, SDL, SDL_image, SDL_ttf, FMOD, GTK
+
+Jean-Loup BEAUSSART & Dylan GUERVILLE
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <gtk\gtk.h>
+#include <time.h>
+#include <SDL.h>
+#include <math.h>
+#include <SDL_image.h>
+#include <SDL_ttf.h>
+#include <fmod.h>
+#include "SDL2_gfxPrimitives.h"
+#include "IOoptions.h"
+#include "IOmain.h"
+#include "main.h"
+#include "callback.h"
+#include "jeu.h"
+#include "JeuSDL.h"
+#include "IOcredits.h"
+
+/* Variables globales accessibles depuis toutes les fonctions */
+int TailleBloc, TailleBoule, TailleMissileH, TailleMissileW, BMusique, BSons;
+double Volume, Hauteur, Largeur;
+InfoDeJeu infos;
+
+/* Fonction principale */
+int main(int argc, char *argv[])
+{
+	/* Déclaration des widgets */
+	GtkWidget *pWindow, *pTitre, *pBoutonConnexion, *pBoutonJouer, *pBoutonOptions, *pBoutonEditeur, *pBoutonCredits, *pBoutonQuitter, *pZoneDessin, *pZoneDessinV1, *pZoneDessinV2;
+
+	GSList *pListeElements=NULL;	//Liste chaînée où l'on va mettre les éléments dont ont aura besoin plus tard
+
+	GdkImages pix = {{NULL}};	//Pointeur sur une structure de 4 'GdkPixBuf*'
+
+	char options[50][50];	//Tableau qui va contenir les options temporairement
+	int i=0;	//Compteur
+
+	Options *pOptions = NULL;	//Pointeur sur une structure 'Options'
+
+	FMOD_SYSTEM *pMoteurSon=NULL;     //Pointeur sur le moteur sonore
+	Sons sons = {{NULL},{NULL}};     //Structure des sons
+	FMOD_CHANNEL *channelEnCours=NULL;    //Pointeur pour le contrôle des différents canaux audios
+
+	Joueur joueur;	//Structure de type 'Joueur'
+
+	FILE *pFichierErreur = fopen("ressources/ErreursLog.txt", "a");       //Création du fichier d'erreur.
+
+	if (pFichierErreur == NULL)
+	{
+		exit(EXIT_FAILURE);	//On quitte si on a pas réussi à l'ouvrir
+	}
+
+	InitialiserJoueur(&joueur);	//On met à zéro les champs de la structure joueur
+
+	/* On lit les options */
+	LectureOptions(options);
+	pOptions = DecouperOptions(options);
+
+	if(pOptions == NULL)
+	{
+		fprintf(pFichierErreur, "Erreur de lecture des options.\n");	//On quitte et on écrit l'erreur
+		exit(EXIT_FAILURE);
+	}
+
+	/* Affectation des variables globales */
+	Hauteur = pOptions->hauteur;
+	Largeur = pOptions->largeur;
+	TailleBloc = ceil(Largeur/40.0);
+	TailleBoule = Arrondir(Largeur/45.0);
+	TailleMissileW = Arrondir(Largeur/30.0);
+	TailleMissileH = Arrondir(Hauteur/5.5);
+	BSons = pOptions->sons;
+	BMusique = pOptions->musique;
+	Volume = pOptions->volume;
+
+	InitialisationSon(&pMoteurSon, pFichierErreur, &sons);	//On charge les sons et on initialise le moteur FMOD
+
+	/* On lit la musique si l'option est activée */
+	if(pOptions->musique)
+	{
+		FMOD_System_PlaySound(pMoteurSon, M_MENU, sons.music[M_MENU], true, NULL);
+		FMOD_System_GetChannel(pMoteurSon, M_MENU, &channelEnCours);
+		FMOD_Channel_SetVolume(channelEnCours, pOptions->volume/100.0);
+		FMOD_Channel_SetPaused(channelEnCours, false);
+	}
+
+	gtk_init(&argc, &argv);		//Initialisation de GTK
+
+	/* On charge les images pour les animations du menu */
+	pix.img[0] = gdk_pixbuf_new_from_file("ressources/img/boule_bleue.png", NULL);
+	pix.img[1] = gdk_pixbuf_new_from_file("ressources/img/boule_verte.png", NULL);
+	pix.img[2] = gdk_pixbuf_new_from_file("ressources/img/boule_magenta.png", NULL);
+	pix.img[3] = gdk_pixbuf_new_from_file("ressources/img/missile.png", NULL);
+
+	for(i=0; i<4; i++)
+	{
+		if(pix.img[i] == NULL)
+		{
+			fprintf(pFichierErreur, "Impossible de charger les images.\n");	//On quitte et on écrit l'erreur
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	/* Création de la fenêtre du menu, des boutons, ... */
+	CreerFenetre(&pWindow);
+	pListeElements = (GSList*)g_list_append((GList*)pListeElements, pWindow); //0
+	CreerTitre(&pTitre);
+	CreerBoutons(&pBoutonConnexion, &pBoutonJouer, &pBoutonCredits, &pBoutonOptions, &pBoutonEditeur, &pBoutonQuitter, pListeElements);
+	CreerZonesDessin(&pZoneDessin, &pZoneDessinV1, &pZoneDessinV2, &pix);
+	CreerBoites(&pWindow, &pBoutonConnexion, &pBoutonJouer, &pBoutonOptions, &pBoutonEditeur, &pBoutonCredits, &pBoutonQuitter, &pZoneDessinV1, &pZoneDessinV2, &pTitre, &pZoneDessin);
+
+	/* On ajoute des timers pour les fonctions de mise à jour des animations */
+	g_timeout_add(20, (GSourceFunc)Avancer, NULL);
+	g_timeout_add_full(G_PRIORITY_HIGH, 30, (GSourceFunc)Redessiner, pZoneDessin, NULL);
+	g_timeout_add_full(G_PRIORITY_HIGH, 30, (GSourceFunc)Redessiner, pZoneDessinV1, NULL);
+	g_timeout_add_full(G_PRIORITY_HIGH, 30, (GSourceFunc)Redessiner, pZoneDessinV2, NULL);
+
+	/* Ajout des éléments dont ont aura besoin après à la liste chainée */
+	pListeElements = g_slist_append(pListeElements, pMoteurSon);//3
+	pListeElements = g_slist_append(pListeElements, &sons);	//4
+	pListeElements = g_slist_append(pListeElements, pOptions); //5
+	pListeElements = g_slist_append(pListeElements, &joueur); //6
+
+
+	/*Affichage de la fenêtre*/
+	gtk_widget_show_all(pWindow);
+
+	/* Démarrage de la boucle évènementielle */
+	gtk_main();
+
+	/* La boucle évènementielle est terminée on nettoie avant de quitter */
+	LiberationMemoireMain(pListeElements, pOptions, pFichierErreur, &sons, pMoteurSon, &pix);
+
+	return EXIT_SUCCESS;	//Fin du programme
+}
+
+void CreerBoutons( GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWidget **pBoutonCredits, GtkWidget **pBoutonOptions, GtkWidget **pBoutonEditeur, GtkWidget **pBoutonQuitter, GSList *pListeElements)
+{
+	/* Déclaration des widgets qui vont contenir le texte des buttons */
+	GtkWidget *pBoutonConnexionLabel, *pBoutonJouerLabel, *pBoutonCreditsLabel, *pBoutonOptionsLabel, *pBoutonEditeurLabel, *pBoutonQuitterLabel;
+	GdkRGBA couleurBoutons= {0.650, 0.850, 0.925, 1}, couleurBoutonsEnfonce= {0.550, 0.655, 0.700, 1};
+
+	/* On crée le bouton CONNEXION */
+	*pBoutonConnexion = gtk_button_new();
+	pBoutonConnexionLabel = gtk_label_new(g_locale_to_utf8("<span size=\"25000\"><b>Connexion</b></span>", -1, NULL, NULL, NULL));
+	gtk_label_set_use_markup(GTK_LABEL(pBoutonConnexionLabel), true);
+	gtk_label_set_justify(GTK_LABEL(pBoutonConnexionLabel), GTK_JUSTIFY_CENTER);
+	gtk_container_add(GTK_CONTAINER(*pBoutonConnexion), pBoutonConnexionLabel);	//On ajoute le label au bouton
+
+	/* On défini les différentes couleurs */
+	gtk_widget_override_background_color(*pBoutonConnexion, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pBoutonConnexionLabel, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(*pBoutonConnexion, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_override_background_color(pBoutonConnexionLabel, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+
+	g_signal_connect(G_OBJECT(*pBoutonConnexion), "clicked", G_CALLBACK(Connexion), pListeElements); // On ouvre la fenêtre de connexion au clic
+
+
+	/*						   */
+	/* On crée le bouton JOUER */
+	*pBoutonJouer = gtk_button_new();
+	pBoutonJouerLabel = gtk_label_new(g_locale_to_utf8("<span size=\"25000\"><b>Jouer</b></span>", -1, NULL, NULL, NULL));
+	gtk_label_set_use_markup(GTK_LABEL(pBoutonJouerLabel), true);
+	gtk_label_set_justify(GTK_LABEL(pBoutonJouerLabel), GTK_JUSTIFY_CENTER);
+	gtk_container_add(GTK_CONTAINER(*pBoutonJouer), pBoutonJouerLabel); //On ajoute le label au bouton
+
+	/* On défini les différentes couleurs */
+	gtk_widget_override_background_color(*pBoutonJouer, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pBoutonJouerLabel, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(*pBoutonJouer, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_override_background_color(pBoutonJouerLabel, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_override_background_color(*pBoutonJouer, GTK_STATE_FLAG_INSENSITIVE, &couleurBoutons);
+	gtk_widget_override_background_color(pBoutonJouerLabel, GTK_STATE_FLAG_INSENSITIVE, &couleurBoutons);
+
+	gtk_widget_set_sensitive(*pBoutonJouer, false);	//On désactive le bouton au début
+
+	g_signal_connect(G_OBJECT(*pBoutonJouer), "clicked", G_CALLBACK(OuvrirSDL), pListeElements); // On ouvre la fenêtre SDL au clique
+
+	g_list_append((GList*)pListeElements, GTK_BUTTON(*pBoutonJouer)); //1
+
+
+	/*						   */
+	/* On crée le bouton EDITEUR */
+	*pBoutonEditeur = gtk_button_new();
+	pBoutonEditeurLabel = gtk_label_new(g_locale_to_utf8("<span size=\"25000\"><b>Editeur</b></span>", -1, NULL, NULL, NULL));
+	gtk_label_set_use_markup(GTK_LABEL(pBoutonEditeurLabel), true);
+	gtk_label_set_justify(GTK_LABEL(pBoutonEditeurLabel), GTK_JUSTIFY_CENTER);
+	gtk_container_add(GTK_CONTAINER(*pBoutonEditeur), pBoutonEditeurLabel);	//On ajoute le label au bouton
+
+	/* On défini les différentes couleurs */
+	gtk_widget_override_background_color(*pBoutonEditeur, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pBoutonEditeurLabel, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(*pBoutonEditeur, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_override_background_color(pBoutonEditeurLabel, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_override_background_color(*pBoutonEditeur, GTK_STATE_FLAG_INSENSITIVE, &couleurBoutons);
+	gtk_widget_override_background_color(pBoutonEditeurLabel, GTK_STATE_FLAG_INSENSITIVE, &couleurBoutons);
+
+	gtk_widget_set_sensitive(*pBoutonEditeur, false);	//On désactive le bouton au début
+
+	g_signal_connect(G_OBJECT(*pBoutonEditeur), "clicked", G_CALLBACK(OuvrirSDL), pListeElements);// On ouvre la fenêtre SDL au clic
+
+	g_list_append((GList*)pListeElements, GTK_BUTTON(*pBoutonEditeur)); //2
+
+
+	/*						   */
+	/* On crée le bouton QUITTER */
+	*pBoutonQuitter = gtk_button_new();
+	pBoutonQuitterLabel = gtk_label_new(g_locale_to_utf8("<span size=\"25000\"><b>Quitter</b></span>", -1, NULL, NULL, NULL));
+	gtk_label_set_use_markup(GTK_LABEL(pBoutonQuitterLabel), true);
+	gtk_label_set_justify(GTK_LABEL(pBoutonQuitterLabel), GTK_JUSTIFY_CENTER);
+	gtk_container_add(GTK_CONTAINER(*pBoutonQuitter), pBoutonQuitterLabel);	//On ajoute le label au bouton
+
+	/* On défini les différentes couleurs */
+	gtk_widget_override_background_color(*pBoutonQuitter, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pBoutonQuitterLabel, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(*pBoutonQuitter, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_override_background_color(pBoutonQuitterLabel, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+
+	g_signal_connect(G_OBJECT(*pBoutonQuitter), "clicked", G_CALLBACK(DestructionFenetre), NULL);	//On ferme quand on clique dessus
+
+
+	/*						   */
+	/* On crée le bouton CREDITS */
+	*pBoutonCredits = gtk_button_new();
+	pBoutonCreditsLabel = gtk_label_new(g_locale_to_utf8("<span size=\"25000\"><b>Crédits</b></span>", -1, NULL, NULL, NULL));
+	gtk_label_set_use_markup(GTK_LABEL(pBoutonCreditsLabel), true);
+	gtk_label_set_justify(GTK_LABEL(pBoutonCreditsLabel), GTK_JUSTIFY_CENTER);
+	gtk_container_add(GTK_CONTAINER(*pBoutonCredits), pBoutonCreditsLabel);	//On ajoute le label au bouton
+
+	/* On défini les différentes couleurs */
+	gtk_widget_override_background_color(*pBoutonCredits, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pBoutonCreditsLabel, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(*pBoutonCredits, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_override_background_color(pBoutonCreditsLabel, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+
+	g_signal_connect(G_OBJECT(*pBoutonCredits), "clicked", G_CALLBACK(LancementCredits), pListeElements);//On affiche les crédits au clic
+
+
+	/*						   */
+	/*On crée le bouton OPTIONS */
+	*pBoutonOptions = gtk_button_new();
+	pBoutonOptionsLabel = gtk_label_new(g_locale_to_utf8("<span size=\"25000\"><b>Options</b></span>", -1, NULL, NULL, NULL));
+	gtk_label_set_use_markup(GTK_LABEL(pBoutonOptionsLabel), true);
+	gtk_label_set_justify(GTK_LABEL(pBoutonOptionsLabel), GTK_JUSTIFY_CENTER);
+	gtk_container_add(GTK_CONTAINER(*pBoutonOptions), pBoutonOptionsLabel);	//On ajoute le label au bouton
+
+	/* On défini les différentes couleurs */
+	gtk_widget_override_background_color(*pBoutonOptions, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pBoutonOptionsLabel, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(*pBoutonOptions, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_override_background_color(pBoutonOptionsLabel, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+
+	g_signal_connect(G_OBJECT(*pBoutonOptions), "clicked", G_CALLBACK(LancementOptions), pListeElements);	//On affiche les options au clic
+}
+
+void CreerFenetre(GtkWidget **pWindow)
+{
+	GdkRGBA couleurFond= {0.610, 0.805, 0.920, 1};
+
+	/* On crée la fenêtre */
+	*pWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+
+	gtk_widget_set_events(*pWindow, GDK_KEY_RELEASE_MASK);
+
+	/* Connexion du signal "destroy" avec la fonction DestructionFenetre qui affiche un message de confirmation pour quitter */
+	g_signal_connect(G_OBJECT(*pWindow), "delete-event", G_CALLBACK(DestructionFenetre), NULL);
+	g_signal_connect(G_OBJECT(*pWindow), "key_release_event", G_CALLBACK(QuitterEchape), NULL);
+
+	gtk_window_set_position(GTK_WINDOW(*pWindow), GTK_WIN_POS_CENTER_ALWAYS);	//Position
+	gtk_window_set_title(GTK_WINDOW(*pWindow), g_locale_to_utf8("Boules et Mouvement", -1, NULL, NULL, NULL));	//Titre
+	gtk_widget_set_size_request(*pWindow, 800, 600);	//Taille
+	gtk_window_set_resizable(GTK_WINDOW(*pWindow), false);
+	gtk_window_set_icon_from_file(GTK_WINDOW(*pWindow), "ressources/img/z.png", NULL);	//Icône
+	gtk_widget_override_background_color(*pWindow, GTK_STATE_FLAG_NORMAL, &couleurFond);	//Couleur
+}
+
+void CreerBoites(GtkWidget **pWindow, GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWidget **pBoutonOptions, GtkWidget **pBoutonEditeur, GtkWidget **pBoutonCredits, GtkWidget **pBoutonQuitter, GtkWidget **pZoneDessinV1, GtkWidget **pZoneDessinV2, GtkWidget **pTitre, GtkWidget **pZoneDessin)
+{
+	GtkWidget *pBoxVBoutons, *pBoxHMissilesBoutons, *pBoxVTitreBoulesMissilesButons;
+
+	/* On crée les boites qui vont contenir les différents éléments de l'interface afin de la mettre en forme, on ajoute dans les boites les éléments de l'interface, puis on met les boites dans une grande boite, que l'on place dans la fenêtre */
+
+	pBoxVBoutons = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_box_pack_start(GTK_BOX(pBoxVBoutons), *pBoutonConnexion, false, false, 8);
+	gtk_box_pack_start(GTK_BOX(pBoxVBoutons), *pBoutonJouer, false, false, 8);
+	gtk_box_pack_start(GTK_BOX(pBoxVBoutons), *pBoutonOptions, false, false, 8);
+	gtk_box_pack_start(GTK_BOX(pBoxVBoutons), *pBoutonEditeur, false, false, 8);
+	gtk_box_pack_start(GTK_BOX(pBoxVBoutons), *pBoutonCredits, false, false, 8);
+	gtk_box_pack_start(GTK_BOX(pBoxVBoutons), *pBoutonQuitter, false, false, 8);
+
+	pBoxHMissilesBoutons = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_pack_start(GTK_BOX(pBoxHMissilesBoutons), *pZoneDessinV1, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(pBoxHMissilesBoutons), pBoxVBoutons, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(pBoxHMissilesBoutons), *pZoneDessinV2, false, false, 0);
+
+	pBoxVTitreBoulesMissilesButons = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_box_pack_start(GTK_BOX(pBoxVTitreBoulesMissilesButons), *pTitre, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(pBoxVTitreBoulesMissilesButons), *pZoneDessin, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(pBoxVTitreBoulesMissilesButons), pBoxHMissilesBoutons, false, false, 0);
+
+	gtk_container_add(GTK_CONTAINER(*pWindow), pBoxVTitreBoulesMissilesButons);
+}
+
+void CreerTitre(GtkWidget **pTitre)
+{
+	/* On crée le texwte du titre */
+	*pTitre = gtk_label_new(g_locale_to_utf8("<span underline=\"single\" font-family=\"Snickles\" size=\"50000\">Balls and movement</span>", -1, NULL, NULL, NULL));
+	gtk_label_set_use_markup(GTK_LABEL(*pTitre), true);
+	gtk_label_set_justify(GTK_LABEL(*pTitre), GTK_JUSTIFY_CENTER);
+	gtk_widget_set_size_request(*pTitre, 800, 40);
+}
+
+void CreerZonesDessin(GtkWidget **pZoneDessin, GtkWidget **pZoneDessinV1, GtkWidget **pZoneDessinV2, GdkImages *pix)
+{
+
+	/* On crée les différentes zone de dessin des animations */
+	*pZoneDessin = gtk_drawing_area_new();
+	gtk_widget_set_size_request(*pZoneDessin, 800, 160);
+	g_signal_connect(G_OBJECT(*pZoneDessin), "draw", G_CALLBACK(Peindre), pix);
+
+	*pZoneDessinV1 = gtk_drawing_area_new();
+	gtk_widget_set_size_request(*pZoneDessinV1, 300, 400);
+	g_signal_connect(G_OBJECT(*pZoneDessinV1), "draw", G_CALLBACK(PeindreV1), pix);
+
+	*pZoneDessinV2 = gtk_drawing_area_new();
+	gtk_widget_set_size_request(*pZoneDessinV2, 300, 400);
+	g_signal_connect(G_OBJECT(*pZoneDessinV2), "draw", G_CALLBACK(PeindreV2), pix);
+}
+
+void InitialiserJoueur(Joueur *pJoueur)
+{
+	/* On met à zéro les informations sur le joueur */
+	pJoueur->connexion = 0;
+	pJoueur->niveau_max = pJoueur->score_max = 0;
+	sprintf(pJoueur->pseudo, "");
+	sprintf(pJoueur->mdp, "");
+	sprintf(pJoueur->autre, "");
+}
+
+void LiberationMemoireMain(GSList *pListeElements, Options *pOptions, FILE *pFichierErreur, Sons *pSons, FMOD_SYSTEM *pMoteurSon, GdkImages *pPix)
+{
+	int i=0;
+
+	while(pSons->music[i] !=NULL)
+	{
+		FMOD_Sound_Release(pSons->music[i]);
+		i++;
+	}
+
+	i=0;
+
+	while(pSons->bruits[i] !=NULL)
+	{
+		FMOD_Sound_Release(pSons->bruits[i]);
+		i++;
+	}
+
+	g_list_free((GList*)pListeElements);
+
+	for(i=0; i<4; i++)
+	{
+		g_object_unref(pPix->img[i]);
+	}
+
+	FMOD_System_Release(pMoteurSon);
+
+	free(pOptions);
+	fclose(pFichierErreur);
+
+}
+
+//Fin du fichier main.c

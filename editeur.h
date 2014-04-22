@@ -19,6 +19,13 @@ int AffichageEditeur(SDL_Renderer *pMoteurRendu, sprite images[], Map* pMap, Cla
 int Editeur (SDL_Renderer *pMoteurRendu, sprite images[], FMOD_SYSTEM *pMoteurSon, Sons *pSons, TTF_Font *polices[]);
 int MiseAJourMap (Map *pMap, sprite images[], ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon, Sons *pSons);
 int VerifierEmplacements(sprite images[], Map *pMap);
+void DeplacementObjetEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, sprite images[], ClavierSouris *pEntrees);
+void MiseAjourMapEtBonusEditeur(ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon, Sons *pSons, Map *pMap, int *pDiaPris, int *pMissilePris);
+void MiseAJourMapMissileEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, ClavierSouris *pEntrees, sprite images[], int *pMissilePris);
+void AmeliorationMap(Map *pMap);
+void AffichageBonusEditeur(SDL_Renderer *pMoteurRendu, sprite images[]);
+void AffichageBoxEditeur(SDL_Renderer *pMoteurRendu, ClavierSouris *pEntrees);
+void AffichageObjetCurseurEditeur(SDL_Renderer *pMoteurRendu, ClavierSouris *pEntrees, sprite images[], int objetPris);
 
 #endif // EDITEUR_H_INCLUDED
 

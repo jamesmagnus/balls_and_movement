@@ -39,7 +39,7 @@ int Boucle_principale(Joueur *pJoueur, sprite images[], Animation anim[], SDL_Re
 	int tempsFPS=0, tempsAncienFPS=0, tempsChrono=0, tempsAncienChrono=0, ajoutAnim=false, etat=0;
 	FMOD_CHANNEL *musicEnCours=NULL;
 	Map *pMap=NULL, *pMapNew=NULL;
-	int retour=1;
+	int retour=1, missileTouche=0;
 	SDL_Event evenementPoubelle;
 	char chaine[100];
 
@@ -103,23 +103,36 @@ int Boucle_principale(Joueur *pJoueur, sprite images[], Animation anim[], SDL_Re
 
 			etat = MiseAJourCoordonnees(entrees, images, descente, pMap, pMoteurSon, pSons);
 
-			if (etat == 1)
+			if(etat == 2)
+			{
+				infos.vies--;
+				infos.score -= 150;
+				infos.compteurTemps = 0;
+				InitialisationPositions(images, "jouer", infos.niveau);
+			}
+			else if (etat >= 1)
 			{
 				infos.vies--;
 				infos.score -= 150;
 				infos.compteurTemps = 0;
 				ajoutAnim = true;
-				anim[ANIM_0].pos.x = images[MISSILE].position[0].x -30;
-				anim[ANIM_0].pos.y = images[MISSILE].position[0].y -30;
-				anim[ANIM_0].pos.h = images[MISSILE].position[0].h +60;
-				anim[ANIM_0].pos.w = images[MISSILE].position[0].w +60;
-				InitialisationPositions(images, "jouer", infos.niveau);
-			}
-			else if(etat == 2)
-			{
-				infos.vies--;
-				infos.score -= 150;
-				infos.compteurTemps = 0;
+				missileTouche = (etat-1) /100;
+
+				if (missileTouche >= 5)
+				{
+					anim[ANIM_0].pos.x = Arrondir(images[MISSILE].position[missileTouche].x - (0.03 * 1280));
+					anim[ANIM_0].pos.y = Arrondir(images[MISSILE].position[missileTouche].y - (0.03 * Largeur));
+					anim[ANIM_0].pos.h = Arrondir(images[MISSILE].position[missileTouche].w + (0.06 * Largeur));
+					anim[ANIM_0].pos.w = Arrondir(images[MISSILE].position[missileTouche].h + (0.03 * Largeur));
+				}
+				else
+				{
+					anim[ANIM_0].pos.x = Arrondir(images[MISSILE].position[missileTouche].x - (0.03 * Largeur));
+					anim[ANIM_0].pos.y = Arrondir(images[MISSILE].position[missileTouche].y - (0.03 * Largeur));
+					anim[ANIM_0].pos.h = Arrondir(images[MISSILE].position[missileTouche].h + (0.03 * Largeur));
+					anim[ANIM_0].pos.w = Arrondir(images[MISSILE].position[missileTouche].w + (0.06 * Largeur));
+				}
+
 				InitialisationPositions(images, "jouer", infos.niveau);
 			}
 			else if (etat == -1)
@@ -717,7 +730,7 @@ int VerifierMortOUGagne(sprite images[], Map *pMap, FMOD_SYSTEM *pMoteurSon, Son
 			FMOD_System_GetChannel(pMoteurSon, S_BOULE_BOUM+10, &musicEnCours);
 			FMOD_Channel_SetVolume(musicEnCours, Volume/100.0);
 			FMOD_Channel_SetPaused(musicEnCours,  false);
-			return 1;
+			return 1 + 100*collision.numMissile;
 		}
 	}
 
@@ -2191,27 +2204,7 @@ int Perdu(SDL_Renderer *pMoteurRendu, sprite images[], Animation anim[], Map* pM
 
 		SDL_FreeSurface(information.surface);
 	}
-
-	anim[ANIM_0].pos.h = images[MISSILE].position[0].h + images[BOULE_MAGENTA].position[0].h;
-	anim[ANIM_0].pos.w = images[MISSILE].position[0].w + images[BOULE_MAGENTA].position[0].w;
-
-	if (images[MISSILE].position[0].x < images[BOULE_MAGENTA].position[0].x)
-	{
-		anim[ANIM_0].pos.x = images[MISSILE].position[0].x;
-	}
-	else
-	{
-		anim[ANIM_0].pos.x = images[MISSILE].position[0].x;
-	}
-
-	if (images[MISSILE].position[0].y < images[BOULE_MAGENTA].position[0].y)
-	{
-		anim[ANIM_0].pos.y = images[MISSILE].position[0].y;
-	}
-	else
-	{
-		anim[ANIM_0].pos.y = images[MISSILE].position[0].y;
-	}
+	
 
 	while(!entrees.clavier[ECHAP] && !entrees.clavier[ESPACE] && !entrees.clavier[ENTREE] && !entrees.fermeture)
 	{

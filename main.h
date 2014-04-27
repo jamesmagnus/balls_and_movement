@@ -10,7 +10,7 @@ Actions: Permet à l'ordinateur de connaître toutes les fonctions présentes dans 
 Jean-Loup BEAUSSART & Dylan GUERVILLE
 */
 
-#ifndef DEF_MAIN_H
+#ifndef DEF_MAIN_H	//Protection contre les inclusions infinies
 #define DEF_MAIN_H
 
 /* Définitions */
@@ -20,7 +20,7 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 #define T_ANIM 35
 #define _G_ 9.80665
 
-
+/* Flags pour les bonus */
 #define AUCUN_BONUS 0x000
 #define BONUS_SCORE_FAIBLE 0x001
 #define BONUS_SCORE_FORT 0x002
@@ -34,6 +34,7 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 #define BONUS_VITESSE_VERTE_FAIBLE 0x200
 #define BONUS_VITESSE_VERTE_FORT 0x400
 
+/* Flags pour les collisions */
 #define COLL_NONE 0x000
 #define COLL_VORTEX_BLEU 0x001
 #define COLL_VORTEX_VERT 0x002
@@ -48,19 +49,19 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 #define COLL_MISSILE 0x400
 
 /* Structures */
-typedef struct Coordo
+typedef struct Coordo	//Coordonnées pour les animations du menu
 {
 	double x1, x2, x3, x4;
 	double y1, y2, y3, y4;
 	char sens1, sens2, sens3, sens4;
 } Coordo;
 
-typedef struct GdkImages
+typedef struct GdkImages	//Structure qui contient les 4 pixbufs, c'est à dire les quatres images des animations du menu
 {
 	GdkPixbuf *img[4];
 } GdkImages;
 
-typedef struct Joueur
+typedef struct Joueur	//Structure avec les informations relatives au joueur
 {
 	char pseudo[255];
 	char mdp[100];
@@ -71,7 +72,7 @@ typedef struct Joueur
 } Joueur;
 
 
-typedef struct InfoDeJeu
+typedef struct InfoDeJeu	//Structure avec les infos de la partie
 {
 	char vies;
 	char viesInitiales;

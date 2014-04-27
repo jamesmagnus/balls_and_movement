@@ -10,7 +10,7 @@ Actions: Permet à l'ordinateur de connaître toutes les fonctions présentes dans 
 Jean-Loup BEAUSSART & Dylan GUERVILLE
 */
 
-#ifndef EDITEUR_H_INCLUDED
+#ifndef EDITEUR_H_INCLUDED	//Protection contre les inclusions infinies
 #define EDITEUR_H_INCLUDED
 
 /* Prototypes des fonctions */

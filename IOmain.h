@@ -11,10 +11,9 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 */
 
 #ifndef IOMAIN_H_INCLUDED
-#define IOMAIN_H_INCLUDED
+#define IOMAIN_H_INCLUDED	//Protection contre les inclusons infinies
 
 /* Structures */
-
 typedef struct Souris       //Structure pour gérer les événements de la souris
 {
 	char touches[3];
@@ -22,14 +21,14 @@ typedef struct Souris       //Structure pour gérer les événements de la souris
 	int scroll;
 } Souris;
 
-typedef struct ClavierSouris        //Structure pour gérer les événements du clavier et de la souris
+typedef struct ClavierSouris        //Structure pour gérer les événements du clavier
 {
 	int fermeture;
 	char clavier[200];
 	Souris souris;
 } ClavierSouris;
 
-typedef struct texte        //Structure pour afficher du texte
+typedef struct texte        //Structure pour afficher du texte avec la SDL
 {
 	SDL_Texture *pTextures[100];
 	SDL_Surface *surface;
@@ -37,18 +36,18 @@ typedef struct texte        //Structure pour afficher du texte
 	char chaines[100][200];
 } texte;
 
-typedef struct sprite           //Structure pour le(s) personnage(s)
+typedef struct sprite           //Structure pour les images à afficher
 {
 	SDL_Texture *pTextures[20];
 	SDL_Rect position[20];
 } sprite;
 
-typedef struct TileProp
+typedef struct TileProp		//Structure pour les propriétés des tiles du décor
 {
 	SDL_Rect src;
 } TileProp;
 
-typedef struct Map
+typedef struct Map		//Structure pour la map d'un niveau
 {
 	int LARGEUR_TILE, HAUTEUR_TILE;
 	int nbtilesX,nbtilesY;
@@ -59,20 +58,20 @@ typedef struct Map
 	int **planObjets;
 } Map;
 
-typedef struct Sons
+typedef struct Sons		//Structure pour les sons du jeu
 {
 	FMOD_SOUND *music[10];
 	FMOD_SOUND *bruits[20];
 } Sons;
 
-typedef struct Animation
+typedef struct Animation		//Structure pour les images qui forment une animation
 {
 	SDL_Texture *img[200];
 	SDL_Rect pos;
 	int animEnCours;
 } Animation;
 
-typedef struct Collision
+typedef struct Collision		//Structure pour gérer les collisions
 {
 	unsigned int etatColl;
 	unsigned char numMissile;

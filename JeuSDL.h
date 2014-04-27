@@ -10,7 +10,7 @@ Actions: Permet à l'ordinateur de connaître toutes les fonctions présentes dans 
 Jean-Loup BEAUSSART & Dylan GUERVILLE
 */
 
-#ifndef JEU_SDL_H_INCLUDED
+#ifndef JEU_SDL_H_INCLUDED		//Protection contre les inclusons infinies
 #define JEU_SDL_H_INCLUDED
 
 /* Prototypes des fonctions */

@@ -39,9 +39,9 @@ extern double Volume, Largeur, Hauteur;
 /* Déclaration et affection d'une variable globale au fichier */
 Coordo coordonnees =
 {
-	100, 400, 800, 750,
-	0, 50, 120, 2000,
-	false, true, false, false
+	100, 400, 800, 750,	//x
+	0, 50, 120, 2000,	//y
+	false, true, false, false	//Sens: montée ou descente
 };
 
 
@@ -504,7 +504,7 @@ int Avancer()
 		coordonnees.sens3 = true;
 	}
 
-	/* Missile de gauche */
+	/* Missiles sur les côtés en y (x est constant) */
 	if (coordonnees.y4 >= 0 && !coordonnees.sens4)
 	{
 		coordonnees.y4 -= 10;

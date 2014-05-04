@@ -17,7 +17,7 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, const char mode[], Joueur *pJoueur);
 void LibererMemoire(SDL_Renderer *pMoteurRendu, sprite images[], Animation anim[], TTF_Font *polices[], SDL_Window *pFenetre, Options *pOptions);
 int SauverMySql(Joueur *pJoueur);
-void InitialiserInfos(Options *pOptions);
+void InitialiserInfos(Options *pOptions, Joueur *pJoueur);
 
 #endif // JEU_SDL_H_INCLUDED
 

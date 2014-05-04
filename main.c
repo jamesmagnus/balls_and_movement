@@ -30,7 +30,7 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 #include "JeuSDL.h"
 #include "IOcredits.h"
 
-/* Variables globales accessibles depuis toutes les fonctions */
+/* Variables globales accessibles depuis toutes les fonctions de tous les fichiers (si elles sont liées au début des fichiers en question) */
 int TailleBloc, TailleBoule, TailleMissileH, TailleMissileW, BMusique, BSons;
 double Volume, Hauteur, Largeur;
 InfoDeJeu infos;
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 
 	if (pFichierErreur == NULL)
 	{
-		exit(EXIT_FAILURE);	//On quitte si on a pas réussi à l'ouvrir
+		exit(EXIT_FAILURE);	//On quitte si on a pas réussi à l'ouvrir ou à le créer
 	}
 
 	InitialiserJoueur(&joueur);	//On met à zéro les champs de la structure joueur
@@ -160,7 +160,7 @@ void CreerBoutons( GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWi
 	gtk_label_set_justify(GTK_LABEL(pBoutonConnexionLabel), GTK_JUSTIFY_CENTER);
 	gtk_container_add(GTK_CONTAINER(*pBoutonConnexion), pBoutonConnexionLabel);	//On ajoute le label au bouton
 
-	/* On défini les différentes couleurs */
+	/* On définit les différentes couleurs */
 	gtk_widget_override_background_color(*pBoutonConnexion, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(pBoutonConnexionLabel, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(*pBoutonConnexion, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
@@ -177,7 +177,7 @@ void CreerBoutons( GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWi
 	gtk_label_set_justify(GTK_LABEL(pBoutonJouerLabel), GTK_JUSTIFY_CENTER);
 	gtk_container_add(GTK_CONTAINER(*pBoutonJouer), pBoutonJouerLabel); //On ajoute le label au bouton
 
-	/* On défini les différentes couleurs */
+	/* On définit les différentes couleurs */
 	gtk_widget_override_background_color(*pBoutonJouer, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(pBoutonJouerLabel, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(*pBoutonJouer, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
@@ -200,7 +200,7 @@ void CreerBoutons( GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWi
 	gtk_label_set_justify(GTK_LABEL(pBoutonEditeurLabel), GTK_JUSTIFY_CENTER);
 	gtk_container_add(GTK_CONTAINER(*pBoutonEditeur), pBoutonEditeurLabel);	//On ajoute le label au bouton
 
-	/* On défini les différentes couleurs */
+	/* On définit les différentes couleurs */
 	gtk_widget_override_background_color(*pBoutonEditeur, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(pBoutonEditeurLabel, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(*pBoutonEditeur, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
@@ -223,7 +223,7 @@ void CreerBoutons( GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWi
 	gtk_label_set_justify(GTK_LABEL(pBoutonQuitterLabel), GTK_JUSTIFY_CENTER);
 	gtk_container_add(GTK_CONTAINER(*pBoutonQuitter), pBoutonQuitterLabel);	//On ajoute le label au bouton
 
-	/* On défini les différentes couleurs */
+	/* On définit les différentes couleurs */
 	gtk_widget_override_background_color(*pBoutonQuitter, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(pBoutonQuitterLabel, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(*pBoutonQuitter, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
@@ -240,7 +240,7 @@ void CreerBoutons( GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWi
 	gtk_label_set_justify(GTK_LABEL(pBoutonCreditsLabel), GTK_JUSTIFY_CENTER);
 	gtk_container_add(GTK_CONTAINER(*pBoutonCredits), pBoutonCreditsLabel);	//On ajoute le label au bouton
 
-	/* On défini les différentes couleurs */
+	/* On définit les différentes couleurs */
 	gtk_widget_override_background_color(*pBoutonCredits, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(pBoutonCreditsLabel, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(*pBoutonCredits, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
@@ -257,7 +257,7 @@ void CreerBoutons( GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWi
 	gtk_label_set_justify(GTK_LABEL(pBoutonOptionsLabel), GTK_JUSTIFY_CENTER);
 	gtk_container_add(GTK_CONTAINER(*pBoutonOptions), pBoutonOptionsLabel);	//On ajoute le label au bouton
 
-	/* On défini les différentes couleurs */
+	/* On définit les différentes couleurs */
 	gtk_widget_override_background_color(*pBoutonOptions, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(pBoutonOptionsLabel, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(*pBoutonOptions, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
@@ -275,7 +275,7 @@ void CreerFenetre(GtkWidget **pWindow)
 
 	gtk_widget_set_events(*pWindow, GDK_KEY_RELEASE_MASK);
 
-	/* Connexion du signal "destroy" avec la fonction DestructionFenetre qui affiche un message de confirmation pour quitter */
+	/* Connexion du signal "delete-event" avec la fonction DestructionFenetre qui affiche un message de confirmation pour quitter */
 	g_signal_connect(G_OBJECT(*pWindow), "delete-event", G_CALLBACK(DestructionFenetre), NULL);
 	g_signal_connect(G_OBJECT(*pWindow), "key_release_event", G_CALLBACK(QuitterEchape), NULL);
 

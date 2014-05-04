@@ -5,7 +5,7 @@ Fichier: callback.c
 
 Contenu: Fonctions de callback pour l'interface du menu
 
-Actions: C'est ici que se trouve les fonctions pour l'interface du menu.
+Actions: C'est ici que se trouve les fonctions pour l'interface du menu, les actions lorsque l'on clique sur un bouton.
 
 Bibliothèques utilisées: Bibliothèques standards, SDL, SDL_image, SDL_ttf, FMOD, GTK
 
@@ -60,7 +60,7 @@ void DestructionFenetre(GtkWidget *pWidget, gpointer pData)
 
 	pFenetreDemande = gtk_dialog_new();		//On crée une fenêtre de dialogue
 
-	/* On définie quelques caractéristiques de cette fenêtre */
+	/* On définit quelques caractéristiques de cette fenêtre */
 	gtk_window_set_position(GTK_WINDOW(pFenetreDemande), GTK_WIN_POS_CENTER);
 	gtk_window_set_title(GTK_WINDOW(pFenetreDemande), "Vraiment ?");
 	gtk_window_set_icon_from_file(GTK_WINDOW(pFenetreDemande), "ressources/img/z.png", NULL);
@@ -102,20 +102,73 @@ void DestructionFenetre(GtkWidget *pWidget, gpointer pData)
 	gtk_widget_destroy(pFenetreDemande);	// On détruit la fenêtre avant de sortir de la fonction
 }
 
+void DemandeModeJeu(GtkWidget *pWidget, gpointer pData)
+{
+	GtkWidget *pWindow, *pBoutonCampagne, *pBoutonPerso, *pLabelBoutonCampagne, *pLabelBoutonPerso, *pHBox;
+	GdkRGBA couleurFond= {0.610, 0.805, 0.920, 1}, couleurBoutons= {0.650, 0.850, 0.925, 1}, couleurBoutonsEnfonce= {0.550, 0.655, 7.000, 1};
+
+	pWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_position(GTK_WINDOW(pWindow), GTK_WIN_POS_CENTER);
+	gtk_window_set_icon_from_file(GTK_WINDOW(pWindow), "ressources/img/z.png", NULL);
+	gtk_window_set_title(GTK_WINDOW(pWindow), "Mode de jeu");
+	gtk_widget_set_size_request(pWindow, 600, 100);
+	gtk_window_set_resizable(GTK_WINDOW(pWindow), false);
+	gtk_widget_override_background_color(pWindow, GTK_STATE_FLAG_NORMAL, &couleurFond);
+
+	pBoutonCampagne = gtk_button_new();
+	gtk_widget_set_margin_left(pBoutonCampagne, 50);
+	gtk_widget_set_margin_top(pBoutonCampagne, 30);
+	gtk_widget_set_margin_bottom(pBoutonCampagne, 30);
+	//g_signal_connect(G_OBJECT(pBoutonCampagne), "clicked", G_CALLBACK(), pData);	//
+
+	pBoutonPerso = gtk_button_new();
+	gtk_widget_set_margin_right(pBoutonPerso, 50);
+	gtk_widget_set_margin_top(pBoutonPerso, 30);
+	gtk_widget_set_margin_bottom(pBoutonPerso, 30);
+	//g_signal_connect(G_OBJECT(pBoutonPerso), "clicked", G_CALLBACK(), pData);	//
+
+
+	pLabelBoutonCampagne = gtk_label_new("<span size=\"15000\"><b>Campagne</b></span>");
+	gtk_label_set_use_markup(GTK_LABEL(pLabelBoutonCampagne), true);
+	gtk_label_set_justify(GTK_LABEL(pLabelBoutonCampagne), GTK_JUSTIFY_CENTER);
+	gtk_widget_override_background_color(pLabelBoutonCampagne, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pLabelBoutonCampagne, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_set_size_request(pLabelBoutonCampagne, 180, 40);
+	
+	pLabelBoutonPerso = gtk_label_new("<span size=\"15000\"><b>Niveaux Perso</b></span>");
+	gtk_label_set_use_markup(GTK_LABEL(pLabelBoutonPerso), true);
+	gtk_label_set_justify(GTK_LABEL(pLabelBoutonPerso), GTK_JUSTIFY_CENTER);
+	gtk_widget_override_background_color(pLabelBoutonPerso, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pLabelBoutonPerso, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_set_size_request(pLabelBoutonPerso, 180, 40);
+	
+
+	gtk_container_add(GTK_CONTAINER(pBoutonCampagne), pLabelBoutonCampagne);
+	gtk_container_add(GTK_CONTAINER(pBoutonPerso), pLabelBoutonPerso);
+
+	pHBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_pack_start(pHBox, pBoutonCampagne, false, false, 0);
+	gtk_box_pack_end(pHBox, pBoutonPerso, false, false, 0);
+
+	gtk_container_add(GTK_CONTAINER(pWindow), pHBox);
+
+	gtk_widget_show_all(pWindow);
+}
+
 
 void OuvrirSDL(GtkWidget *pWidget, gpointer pData)
 {
 	Joueur *pJoueur = (Joueur *)g_slist_nth_data((GSList*)pData, 6);	//On récupère le pointeur vers la structure Joueur dans la liste chaînée
 
-		gtk_widget_hide(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On cache la fenêtre du menu
-
 		/* On lance le jeu en mode jeu ou en mode éditeur en fonction du bouton qui a été pressé */
 		if(pWidget == GTK_WIDGET(g_slist_nth_data((GSList*)pData, 1)))
 		{
-			LancerJeu((FMOD_SYSTEM *)g_slist_nth_data((GSList*)pData, 3), (Sons *)g_slist_nth_data((GSList*)pData, 4), "jouer", pJoueur);
+			//LancerJeu((FMOD_SYSTEM *)g_slist_nth_data((GSList*)pData, 3), (Sons *)g_slist_nth_data((GSList*)pData, 4), "jouer", pJoueur);
+			DemandeModeJeu(pWidget, pData);
 		}
 		else if(pWidget == GTK_WIDGET(g_slist_nth_data((GSList*)pData, 2)))
 		{
+			gtk_widget_hide(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On cache la fenêtre du menu
 			LancerJeu((FMOD_SYSTEM *)g_slist_nth_data((GSList*)pData, 3), (Sons *)g_slist_nth_data((GSList*)pData, 4), "editeur", pJoueur);
 		}
 
@@ -127,22 +180,22 @@ void LancementCredits(GtkWidget *pWidget, gpointer pData)
 {
 	GtkWidget *lignesCredits[100] = {NULL};	//Tableau de 100 pointeurs pour chaque ligne de crédit 
 	GtkWidget *pVBox=NULL, *pWindow=NULL;	
-	FMOD_CHANNEL *channelEnCours=NULL;
+	FMOD_CHANNEL *pChannelEnCours=NULL;
 	GdkRGBA couleurFond= {0.610, 0.805, 0.920, 1};	//Couleur du fond de la fenêtre
 	char credits[50][100];
 	int nbLignes = ChargementCredits(credits), i=0;
 
 	/* On arrête la musique du menu */
-	FMOD_System_GetChannel((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_MENU, &channelEnCours);
-	FMOD_Channel_SetPaused(channelEnCours, true);
+	FMOD_System_GetChannel((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_MENU, &pChannelEnCours);
+	FMOD_Channel_SetPaused(pChannelEnCours, true);
 
 	FMOD_Sound_SetLoopCount(((Sons *)g_slist_nth_data(pData, 4))->music[M_CREDITS], -1);      // On active la lecture en boucle
 
 	/* On lit la musique des crédits */
 	FMOD_System_PlaySound((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_CREDITS, ((Sons *)g_slist_nth_data(pData, 4))->music[M_CREDITS], true, NULL); 
-	FMOD_System_GetChannel((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_CREDITS, &channelEnCours);
-	FMOD_Channel_SetVolume(channelEnCours, (float)(((Options*)g_slist_nth_data(pData, 5))->volume/100.0));
-	FMOD_Channel_SetPaused(channelEnCours, false);
+	FMOD_System_GetChannel((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_CREDITS, &pChannelEnCours);
+	FMOD_Channel_SetVolume(pChannelEnCours, (float)(((Options*)g_slist_nth_data(pData, 5))->volume/100.0));
+	FMOD_Channel_SetPaused(pChannelEnCours, false);
 
 	/* On crée le titre Crédits */
 	lignesCredits[0] = gtk_label_new(g_locale_to_utf8("<span underline=\"single\" font-family=\"Snickles\" size=\"55000\">Crédits</span>", -1, NULL, NULL, NULL));
@@ -390,7 +443,7 @@ void PeindreV1(GtkWidget *pWidget, cairo_t *cr, gpointer pData)
 	cairo_matrix_scale (&mat, 0.18, 0.18);
 	cairo_set_matrix (cr, &mat);
 
-	/* On définie l'image à "peindre" (le missile), et on "peint" */
+	/* On définit l'image à "peindre" (le missile), et on "peint" */
 	gdk_cairo_set_source_pixbuf(cr, ((GdkImages*)pData)->img[3], coordonnees.x4, coordonnees.y4);
 	cairo_paint(cr);
 }
@@ -407,7 +460,7 @@ void PeindreV2(GtkWidget *pWidget, cairo_t *cr, gpointer pData)
 	cairo_matrix_scale (&mat, 0.18, 0.18);
 	cairo_set_matrix (cr, &mat);
 
-	/* On définie l'image à "peindre" (le missile), et on "peint" */
+	/* On définit l'image à "peindre" (le missile), et on "peint" */
 	gdk_cairo_set_source_pixbuf(cr, ((GdkImages*)pData)->img[3], coordonnees.x4, coordonnees.y4);
 	cairo_paint(cr);
 }
@@ -452,16 +505,16 @@ int Avancer()
 	{
 		coordonnees.y1 += 4;
 	}
-	else if (coordonnees.y1 >= 120)
+	else if (coordonnees.y1 >= 120 && coordonnees.sens1)
 	{
 		coordonnees.sens1 = false;
 	}
 
-	if (coordonnees.y1 >= 0 && !coordonnees.sens1)
+	if (coordonnees.y1 > 0 && !coordonnees.sens1)
 	{
 		coordonnees.y1 -=2;
 	}
-	else if (coordonnees.y1 < 0)
+	else if (coordonnees.y1 <= 0 && !coordonnees.sens1)
 	{
 		coordonnees.sens1 = true;
 	}
@@ -471,16 +524,16 @@ int Avancer()
 	{
 		coordonnees.y2 += 4;
 	}
-	else if (coordonnees.y2 >= 120)
+	else if (coordonnees.y2 >= 120 && coordonnees.sens2)
 	{
 		coordonnees.sens2 = false;
 	}
 
-	if (coordonnees.y2 >= 0 && !coordonnees.sens2)
+	if (coordonnees.y2 > 0 && !coordonnees.sens2)
 	{
 		coordonnees.y2 -=2;
 	}
-	else if (coordonnees.y2 < 0)
+	else if (coordonnees.y2 <= 0 && !coordonnees.sens2)
 	{
 		coordonnees.sens2 = true;
 	}
@@ -490,26 +543,26 @@ int Avancer()
 	{
 		coordonnees.y3 += 4;
 	}
-	else if (coordonnees.y3 >= 120)
+	else if (coordonnees.y3 >= 120 && coordonnees.sens3)
 	{
 		coordonnees.sens3 = false;
 	}
 
-	if (coordonnees.y3 >= 0 && coordonnees.sens3 == false)
+	if (coordonnees.y3 > 0 && !coordonnees.sens3)
 	{
 		coordonnees.y3 -=2;
 	}
-	else if (coordonnees.y3 < 0)
+	else if (coordonnees.y3 <= 0 && !coordonnees.sens3)
 	{
 		coordonnees.sens3 = true;
 	}
 
 	/* Missiles sur les côtés en y (x est constant) */
-	if (coordonnees.y4 >= 0 && !coordonnees.sens4)
+	if (coordonnees.y4 > 0 && !coordonnees.sens4)
 	{
 		coordonnees.y4 -= 10;
 	}
-	else if(coordonnees.y4 < 0)
+	else if(coordonnees.y4 <= 0 && !coordonnees.sens4)
 	{
 		coordonnees.sens4 = true;
 	}
@@ -518,7 +571,7 @@ int Avancer()
 	{
 		coordonnees.y4 += 10;
 	}
-	else if(coordonnees.y4 < 0)
+	else if(coordonnees.y4 >= 1400 && coordonnees.sens4)
 	{
 		coordonnees.sens4 = false;
 	}
@@ -722,6 +775,8 @@ void Connexion(GtkWidget *pWidget, gpointer pData)
 	gtk_container_add(GTK_CONTAINER(pBoutonCO), pBoutonCOLabel);
 	gtk_widget_override_background_color(pBoutonCO, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(pBoutonCO, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_override_background_color(pBoutonCOLabel, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pBoutonCOLabel, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
 	gtk_widget_set_margin_right(pBoutonCO, 50);
 	gtk_widget_set_margin_top(pBoutonCO, 80);
 	g_signal_connect(G_OBJECT(pBoutonCO), "clicked", G_CALLBACK(ConnexionMySql), pListeElements);	//On appelle 'ConnexionMySql' quand on clique dessus
@@ -735,6 +790,8 @@ void Connexion(GtkWidget *pWidget, gpointer pData)
 	gtk_container_add(GTK_CONTAINER(pBoutonGuest), pBoutonGuestLabel);
 	gtk_widget_override_background_color(pBoutonGuest, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(pBoutonGuest, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_override_background_color(pBoutonGuestLabel, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pBoutonGuestLabel, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
 	gtk_widget_set_margin_left(pBoutonGuest, 40);
 	gtk_widget_set_margin_top(pBoutonGuest, 80);
 	g_signal_connect(G_OBJECT(pBoutonGuest), "clicked", G_CALLBACK(ModeGuest), pListeElements);	//On appelle 'ModeGuest' quand on clique dessus
@@ -748,6 +805,8 @@ void Connexion(GtkWidget *pWidget, gpointer pData)
 	gtk_container_add(GTK_CONTAINER(pBoutonAnnuler), pBoutonAnnulerLabel);
 	gtk_widget_override_background_color(pBoutonAnnuler, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(pBoutonAnnuler, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_override_background_color(pBoutonAnnulerLabel, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pBoutonAnnulerLabel, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
 	gtk_widget_set_margin_left(pBoutonAnnuler, 50);
 	gtk_widget_set_margin_top(pBoutonAnnuler, 80);
 	g_signal_connect(G_OBJECT(pBoutonAnnuler), "clicked", G_CALLBACK(FermerFenetre), NULL);	//On ferme quand on clique dessus
@@ -862,8 +921,8 @@ void ConnexionMySql(GtkWidget *pWidget, gpointer pData)
 			{
 				/* On connecte le joueur et on remplit les champs de la struture Joueur avec les infos de la base */
 				pJoueur->connexion = 1;
-				pJoueur->score_max = Arrondir(strtol(row[3], NULL, 10));
-				pJoueur->niveau_max = Arrondir(strtol(row[4], NULL, 10));
+				pJoueur->score_max = strtol(row[3], NULL, 10);
+				pJoueur->niveau_max = strtol(row[4], NULL, 10);
 				sprintf(pJoueur->autre, row[5]);
 			}
 		}

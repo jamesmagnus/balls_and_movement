@@ -26,14 +26,14 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 #include "IOmain.h"
 #include "main.h"
 
+
 int LectureOptions(char options[][50])
 {
-	FILE *pFichierOptions = NULL;       //Pointeur sur le fichier
-	int i = 0;
-	int j = 1;
+	FILE *pFichierOptions = NULL;       //Pointeur sur le fichier d'options
+	int i=0, j=1;
 	char caractere = 0;     //Variable pour retenir le caractère actuel
 
-	pFichierOptions = fopen("ressources/settings.ini", "r");       //Ouverture du fichier
+	pFichierOptions = fopen("ressources/settings.ini", "r");       //Ouverture du fichier en mode lecture
 
 	if(pFichierOptions == NULL) //On vérifie si le fichier existe
 	{
@@ -42,37 +42,36 @@ int LectureOptions(char options[][50])
 
 	do
 	{
-		caractere = 0;
-
 		do
 		{
 			caractere = fgetc(pFichierOptions); //On lit un caractère
 			options[j][i] = caractere;  //On le met dans le tableau
-			i++;    //Caractère suivant
-		}
-		while (caractere != '\n' && caractere != EOF);  //Tant qu'il n'y a pas de retour à la ligne ou de fin de fichier
+			i++;    //Caractère suivant dans le tableau
+
+		}while (caractere != '\n' && caractere != EOF);  //Tant qu'il n'y a pas de retour à la ligne ou de fin de fichier
 
 		options[j][i-1] = '\0';     //On place le caractère de fin de chaîne à la place du retour à la ligne
-		j++;      //Ligne suivante
-		i = 0;
-	}
-	while (caractere != EOF);       //Tant qu'on est pas à la fin du fichier
+		j++;      //Ligne suivante dans le tableau
+		i=0;	//On revient au début de la ligne dans le tableau
+
+	}while (caractere != EOF);       //Tant qu'on est pas à la fin du fichier
 
 	fclose(pFichierOptions);        //On ferme le fichier
 
-	options[0][0]= (char)j-1;
+	options[0][0]= (char)j-1;	//Sur le premier octet on met le nombre de lignes total
 
 	return 0;
 }
 
+
 int ValiderChangement(char options[][50])
 {
-	int i = 0;
-	FILE *pFichierOptions = NULL;
+	int i=0;	//Compteur
+	FILE *pFichierOptions = NULL;	//Pointeur sur le fichier des options
 
 	pFichierOptions = fopen("ressources/settings.ini", "w");      //On ouvre le fichier et on l'efface
 
-	if(pFichierOptions == NULL)     //On vérifie
+	if(pFichierOptions == NULL)     //On vérifie l'ouverture
 	{
 		return -1;
 	}
@@ -88,18 +87,21 @@ int ValiderChangement(char options[][50])
 	return 0;
 }
 
+
 Options* DecouperOptions(char options[][50])
 {
-	Options *pOptions = malloc(sizeof(Options));
-	char *c=NULL;
+	/* Cette fonction alloue une structure Options qu'elle remplit avec le tableau lu par la fonction précédente */
 
-	if(pOptions == NULL)
+	Options *pOptions = malloc(sizeof(Options));	//On alloue une structure Options
+	char *c=NULL;	//Pointeur sur un caractère pour faire des recherches dans les chaînes
+
+	if(pOptions == NULL)	//On vérifie l'allocation de la structure
 	{
 		return NULL;
 	}
 
-	c = strstr(options[1], "=");
-	pOptions->musique = strtol((c+1), NULL, 10);
+	c = strstr(options[1], "=");	//On cherche le '=', on place son adresse dans le pointeur
+	pOptions->musique = strtol((c+1), NULL, 10);	//On convertit en nombre décimal le contenu de la chaîne à partir du caractère suivant le '=' d'où (c+1)
 
 	c = strstr(options[2], "=");
 	pOptions->sons = strtol((c+1), NULL, 10);
@@ -107,7 +109,7 @@ Options* DecouperOptions(char options[][50])
 	c = strstr(options[3], "=");
 	pOptions->largeur = strtol((c+1), NULL, 10);
 
-	c = strstr(options[3], "x");
+	c = strstr(options[3], "x");	//Ici c'est le 'x' entre les deux valeurs de la résolution que l'on recherche
 	pOptions->hauteur = strtol((c+1), NULL, 10);
 
 	c = strstr(options[4], "=");
@@ -119,9 +121,9 @@ Options* DecouperOptions(char options[][50])
 	c = strstr(options[6], "=");
 	pOptions->fullScreen = strtol((c+1), NULL, 10);
 
-	pOptions->nbLigne = options[0][0];
+	pOptions->nbLigne = options[0][0];	//On stocke le nombre de ligne dans la structure également
 
-	return pOptions;
+	return pOptions;	//On retourne l'adresse de la structure qu'on a allouée
 }
 
 //Fin du fichier IOoptions.c

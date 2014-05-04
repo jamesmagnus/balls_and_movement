@@ -28,15 +28,15 @@ typedef struct ClavierSouris        //Structure pour gérer les événements du cla
 	Souris souris;
 } ClavierSouris;
 
-typedef struct texte        //Structure pour afficher du texte avec la SDL
+typedef struct Texte        //Structure pour afficher du texte avec la SDL
 {
 	SDL_Texture *pTextures[100];
 	SDL_Surface *surface;
 	SDL_Rect positions[100];
 	char chaines[100][200];
-} texte;
+} Texte;
 
-typedef struct sprite           //Structure pour les images à afficher
+typedef struct sprite           //Structure pour les images à afficher dans le jeu
 {
 	SDL_Texture *pTextures[20];
 	SDL_Rect position[20];
@@ -68,7 +68,6 @@ typedef struct Animation		//Structure pour les images qui forment une animation
 {
 	SDL_Texture *img[200];
 	SDL_Rect pos;
-	int animEnCours;
 } Animation;
 
 typedef struct Collision		//Structure pour gérer les collisions
@@ -79,7 +78,7 @@ typedef struct Collision		//Structure pour gérer les collisions
 
 /* Prototypes des fonctions */
 int Initialisation(SDL_Renderer **ppMoteurRendu, FILE *pFichierErreur, SDL_Window **ppFenetre, Options *pOptions);
-int Chargement (sprite images[], SDL_Renderer *pMoteurRendu, TTF_Font *polices[], Animation anim[]);
+int Chargements (sprite images[], SDL_Renderer *pMoteurRendu, TTF_Font *polices[], Animation anim[]);
 int GestionEvenements(ClavierSouris *entrees);
 int ChargementTextures(SDL_Renderer *pMoteurRendu, sprite images[]);
 int DestructionSurfaces(SDL_Surface *sImages[]);
@@ -88,8 +87,8 @@ int ChargementMusic (Sons *pSons, FMOD_SYSTEM *pMoteurSon);
 int InitialisationSon(FMOD_SYSTEM **ppMoteurSon, FILE *pFichierErreur, Sons *pSons);
 Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, char mode[], int level);
 int DestructionMap(Map *pMap);
-int EntreesZero(ClavierSouris *pEntrees);
-int ChargementAnimation(SDL_Renderer *pMoteurRendu, Animation anim[]);
+void EntreesZero(ClavierSouris *pEntrees);
+int ChargementAnimations(SDL_Renderer *pMoteurRendu, Animation anim[]);
 int MessageInformations(const char messageInfos[], TTF_Font *polices[], SDL_Renderer *pMoteurRendu, ClavierSouris *pEntrees);
 
 #endif // IOMAIN_H_INCLUDED

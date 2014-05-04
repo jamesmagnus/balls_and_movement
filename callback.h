@@ -15,6 +15,7 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 
 /* Prototypes des fonctions */
 void DestructionFenetre(GtkWidget *pWidget, gpointer pData);
+void DemandeModeJeu(GtkWidget *pWidget, gpointer pData);
 void OuvrirSDL(GtkWidget *pWidget, gpointer pData);
 void LancementCredits(GtkWidget *pWidget, gpointer pData);
 void LancementOptions(GtkWidget *pWidget, gpointer pData);

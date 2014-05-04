@@ -3,9 +3,9 @@ Projet-ISN
 
 Fichier: jeuSDL.c
 
-Contenu: Fonctions d'initialisation du jeu.
+Contenu: Fonctions d'initialisation du jeu et de gestion des scores.
 
-Actions: C'est ici que sont effectuées les tâches de chargement du niveau, d'ouverture de la fenêtre, ...
+Actions: C'est ici que sont effectuées les tâches sauvegarde des scores sur la base MySql, de lancement de la SDL pour le jeu ou l'éditeur, ...
 
 Bibliothèques utilisées: Bibliothèques standards, SDL, SDL_image, SDL_ttf, FMOD, GTK
 
@@ -32,170 +32,212 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 #include "jeu.h"
 #include "JeuSDL.h"
 
-extern int TailleBloc, TailleBoule, TailleMissileH, TailleMissileW, BMusique, BSons;
+extern int TailleBloc, TailleBoule, TailleMissileH, TailleMissileW, BMusique, BSons;		//Lien vers les variables globales déclarées dans main.c
 extern double Volume, Hauteur, Largeur;
 extern InfoDeJeu infos;
 
 int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, const char mode[], Joueur *pJoueur)
 {
+	/* Cette fonction va appeler les fonctions d'initialisations de la SDL et lancer le jeu ou l'éditeur */
+
 	SDL_Renderer *pMoteurRendu = NULL;  //Pointeurs sur le moteur de rendu
 	SDL_Window *pFenetre = NULL;        //Pointeur sur la fenêtre
 	FMOD_CHANNEL *channelEnCours = NULL;    //Pour le contrôle des différents canaux audios
 
-	sprite images[50] = {{NULL}, {0}};   //Tableau des images
+	sprite images[50] = {{NULL}, {0}};   //Tableau des images (textures + positions)
 	TTF_Font *polices[10] = {NULL};		//Tableau des polices
 
-	Options *pOptions = NULL;
-	char options[50][50] = {{""}};
+	Options *pOptions = NULL;	//Pointeur sur une structure Options
+	char options[50][50] = {{""}};	//Tableau de chaînes pour lire le fichier d'options
 
 	FILE *pFichierErreur = fopen("ressources/ErreursLog.txt", "a");        //Pointeur sur le fichier d'erreurs
 
-	SDL_Surface *surf = NULL;
-	SDL_Texture *pEcranChargement = NULL;
+	SDL_Surface *surf = NULL;	//Pointeur sur une surface
+	SDL_Texture *pEcranChargement = NULL;	//Pointeur sur une texture pour l'écran de chargement
 
-	Animation anim[10];
+	Animation anim[10];	//Tableau de structures Animation
 
-	int erreur=0;
+	int erreur=0;	//Code d'erreur
 
+	/* On lit les options et on remplit la structure */
 	LectureOptions(options);
 	pOptions = DecouperOptions(options);
 
-	Initialisation(&pMoteurRendu, pFichierErreur, &pFenetre, pOptions);     //Initialisation des principaux éléments
+	Initialisation(&pMoteurRendu, pFichierErreur, &pFenetre, pOptions);     //Initialisation des principaux éléments (SDL, fenêtre, moteur de rendu)
 
 
-	if(BMusique)
+	if(BMusique)	//S'il y a de la musique
 	{
-		FMOD_System_GetChannel(pMoteurSon, M_MENU, &channelEnCours);
+		FMOD_System_GetChannel(pMoteurSon, M_MENU, &channelEnCours);	//On met en pause la musique du menu
 		FMOD_Channel_SetPaused(channelEnCours, true);
 
-		FMOD_System_PlaySound(pMoteurSon, M_LOAD, pSons->music[M_LOAD], true, NULL);        // On lit la musique
+		FMOD_System_PlaySound(pMoteurSon, M_LOAD, pSons->music[M_LOAD], true, NULL);        // On lit la musique de chargement
 		FMOD_System_GetChannel(pMoteurSon, M_LOAD, &channelEnCours);
 		FMOD_Channel_SetVolume(channelEnCours, Volume/100.0);
 		FMOD_Channel_SetPaused(channelEnCours, false);
 	}
 
+	/* On charge l'image de chargement et on vérifie */
 	surf = IMG_Load("ressources/img/load.png");
+	if (surf == NULL)
+	{
+		fprintf(pFichierErreur, "Erreur: impossible d'ouvrir le fichier ressources/img/load.png");
+		exit(EXIT_FAILURE);
+	}
+
+	/* On transforme la surface en texture pour l'affichage et on libère la mémoire occupée par la surface */
 	pEcranChargement = SDL_CreateTextureFromSurface(pMoteurRendu, surf);
+	SDL_FreeSurface(surf);
 
-	SDL_ShowCursor(false);
+	SDL_ShowCursor(false);	//On masque le curseur pendant le jeu (on affichera un curseur personnalisé dans l'éditeur)
 
+	/* On efface l'écran et on colle l'image de chargement */
 	SDL_SetRenderDrawColor(pMoteurRendu, 0, 0, 0, SDL_ALPHA_OPAQUE);
 	SDL_RenderClear(pMoteurRendu);
 	SDL_RenderCopy(pMoteurRendu, pEcranChargement, NULL, NULL);
 	SDL_RenderPresent(pMoteurRendu);
 
 
-	SDL_EventState(SDL_TEXTEDITING, SDL_DISABLE);   //Désactivation du traitement des événements dont on a pas besoin.
+	SDL_EventState(SDL_TEXTEDITING, SDL_DISABLE);   //Désactivation des événements dont on a pas besoin.
 	SDL_EventState(SDL_TEXTINPUT, SDL_DISABLE);
 
 	SDL_DisableScreenSaver();       //Désactivation de l'écran de veille.
 
-	erreur = Chargement(images, pMoteurRendu, polices, anim);
+	erreur = Chargements(images, pMoteurRendu, polices, anim);	//On charge tout !
 
-	if(erreur == 1)     //Chargement des images, des polices, des sons, ...
+	/* Traitement des éventuelles erreurs */
+	if(erreur == 1)
 	{
-		fprintf(pFichierErreur, "Erreur lors du chargement des images. Veuillez vérifier leur présence dans le dossier de l'exécutable.\n");
+		fprintf(pFichierErreur, "Erreur lors du chargement des images. Veuillez vérifier ressources\img\.\n");
 		exit(EXIT_FAILURE);
 	}
 	else if (erreur == 2)
 	{
-		fprintf(pFichierErreur, "Erreur lors du chargement des polices. Veuillez vérifier leur présence dans le dossier de l'exécutable.\n");
+		fprintf(pFichierErreur, "Erreur lors du chargement des polices. Veuillez vérifier ressources\fonts\.\n");
+		exit(EXIT_FAILURE);
+	}
+	else if (erreur == 3)
+	{
+		fprintf(pFichierErreur, "Erreur lors du chargement des animations. Veuillez vérifier ressources\anim\.\n");
 		exit(EXIT_FAILURE);
 	}
 
+
 	if (BMusique)
 	{
-		FMOD_System_GetChannel(pMoteurSon, M_LOAD, &channelEnCours);
+		FMOD_System_GetChannel(pMoteurSon, M_LOAD, &channelEnCours);	//On arrête la musique du chargement
 		FMOD_Channel_SetPaused(channelEnCours, true);
 
 		FMOD_Sound_SetLoopCount(pSons->music[M_JEU], -1);      // On active la lecture en boucle
 
-		FMOD_System_PlaySound(pMoteurSon, M_JEU, pSons->music[M_JEU], true, NULL);        // On lit la musique
+		FMOD_System_PlaySound(pMoteurSon, M_JEU, pSons->music[M_JEU], true, NULL);        // On lit la musique du jeu
 		FMOD_System_GetChannel(pMoteurSon, M_JEU, &channelEnCours);
 		FMOD_Channel_SetVolume(channelEnCours, Volume/100.0);
 		FMOD_Channel_SetPaused(channelEnCours, false);
 	}
 
-
+	/* On regarde si on appelée la fonction en mode jeu ou en mode editeur */
 	if (strcmp(mode, "jouer") == 0)
 	{
-		InitialiserInfos(pOptions);
-		Boucle_principale(pJoueur, images, anim, pMoteurRendu, pMoteurSon, pSons, polices);       //Boucle du jeu
+		InitialiserInfos(pOptions, pJoueur);	//On définit les infos sur la partie en cours
+		Boucle_principale(pJoueur, images, anim, pMoteurRendu, pMoteurSon, pSons, polices);    //Boucle du jeu
 
-		if (pJoueur->connexion == 1)
+		if (pJoueur->connexion == 1)	//Si on était en mode connecté et non GUEST, on renvoie sur la base MySql l'avancement dans le jeu
 		{
 			SauverMySql(pJoueur);
 		}
 	}
-	else if (strcmp(mode, "editeur") == 0)
+	else if (strcmp(mode, "editeur") == 0)	//Sinon mode éditeur
 	{
-		Editeur(pMoteurRendu, images, pMoteurSon, pSons, polices);
+		Editeur(pMoteurRendu, images, pMoteurSon, pSons, polices);	//On lance la boucle de l'éditeur
 	}
 
-	/*Libération de la mémoire*/
+	/* Libération de la mémoire */
 	LibererMemoire(pMoteurRendu, images, anim, polices, pFenetre, pOptions);
 
-	fclose(pFichierErreur);
+	fclose(pFichierErreur);	//On ferme le fichier d'erreur
 
 	return 0;
 }
 
+
 void LibererMemoire(SDL_Renderer *pMoteurRendu, sprite images[], Animation anim[], TTF_Font *polices[], SDL_Window *pFenetre, Options *pOptions)
 {
-	int i, j;
+	int i=0, j=0;	//Compteurs
 
+	/* On détruit le moteur de rendu et la fenêtre */
 	SDL_DestroyRenderer(pMoteurRendu);
 	SDL_DestroyWindow(pFenetre);
 
-	for(i=0; i<10; i++)
+	/* On detruit les textures des animations une par une, animation par animation */
+	for(j=0, i=0; i<10; i++)
 	{
-		SDL_DestroyTexture(images[i].pTextures[0]);
-
-		j=0;
-
 		while(anim[i].img[j] !=NULL)
 		{
 			SDL_DestroyTexture(anim[i].img[j]);
 			j++;
 		}
+
+		j=0;
 	}
 
-	SDL_DestroyTexture(images[VIE].pTextures[1]);
+	/* On détruit les textures des sprites une par une, sprite par sprite */
+	for(j=0, i=0; i<50; i++)
+	{
+		while(images[i].pTextures[j] != NULL)
+		{
+			SDL_DestroyTexture(images[i].pTextures[j]);
+			j++;
+		}
 
+		j=0;
+	}
+
+	/* On ferme les polices */
 	for(i=0; i<=SNICKY_GRAND; i++)
 	{
 		TTF_CloseFont(polices[i]);
 	}
 
-	free(pOptions);
+	free(pOptions);	//On libère la structure Options
 
+	/* On quitte la SDL et ses extensions */
 	TTF_Quit();
 	IMG_Quit();
 	SDL_Quit();
 }
 
+
 int SauverMySql(Joueur *pJoueur)
 {
-	MYSQL *mysql = mysql_init(NULL);
-	char requete[255] = "";
+	/* On va sauvegarder l'avancement du joueur niveau maximum atteint, score, niveaux et scores des niveaux précédents */
 
-	mysql_options(mysql, MYSQL_READ_DEFAULT_GROUP, "default");
+	MYSQL *mysql = mysql_init(NULL);	//On initialise le gestionnaire de connexion
+	char requete[256] = "";		//Chaîne pour les requêtes MySql
 
+	mysql_options(mysql, MYSQL_READ_DEFAULT_GROUP, "default");	//On charge les options de connexion par défaut
+
+	/* Si on a réussi à se connecter à la base */
 	if(mysql_real_connect(mysql, "mysql1.alwaysdata.com", "89504_beaussart", "beaussart62", "ballsandmovement_players", 3306, NULL, 0))
 	{
-		sprintf(requete, "UPDATE projetz SET score_max = %ld, niveau_max = %d, autre = '%s' WHERE pseudo = '%s'", infos.score, infos.niveau, pJoueur->pseudo, pJoueur->autre);
-		mysql_query(mysql, requete);
+		/* On crée la requête */
+		sprintf(requete, "UPDATE projetz SET score_max = %ld, niveau_max = %d, autre = '%s' WHERE pseudo = '%s'", infos.score, infos.niveau, pJoueur->autre, pJoueur->pseudo);
 
-		mysql_close(mysql);
+		mysql_query(mysql, requete);	//On lance la requête
+
+		mysql_close(mysql);	//On ferme la connexion
 	}
 
 	return 0;
 }
 
-void InitialiserInfos(Options *pOptions)
+
+void InitialiserInfos(Options *pOptions, Joueur *pJoueur)
 {
-	infos.niveau = 1;
-	infos.score = 1000;
+	/* On définit les valeurs pour la partie qui va commencer à partir des options et des informations issues de la base MySql */
+
+	infos.niveau = pJoueur->niveau_max;
+	infos.score = pJoueur->score_max;
 	infos.vies = pOptions->vies;
 	infos.viesInitiales = pOptions->vies;
 	infos.compteurTemps = 0;

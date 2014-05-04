@@ -14,7 +14,7 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 #define IOCREDITS_H_INCLUDED	//Protection contre les inclusons infinies
 
 /* Prototypes des fonctions */
-int ChargementCredits(texte *pCredits);
+int ChargementCredits(Texte *pCredits);
 
 #endif // IOCREDITS_H_INCLUDED
 

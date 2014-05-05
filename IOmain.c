@@ -562,7 +562,7 @@ int ChargementMusic (Sons *pSons, FMOD_SYSTEM *pMoteurSon)
 		return -1;
 	}
 
-	if (FMOD_System_CreateSound(pMoteurSon, "ressources/music/gong.wav", FMOD_2D|FMOD_HARDWARE, NULL, &pSons->bruits[S_BOULE_BOULE]) != FMOD_OK)
+	if (FMOD_System_CreateSound(pMoteurSon, "ressources/music/gling.wav", FMOD_2D|FMOD_HARDWARE, NULL, &pSons->bruits[S_BOULE_BOULE]) != FMOD_OK)
 	{
 		return -1;
 	}

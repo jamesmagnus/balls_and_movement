@@ -37,7 +37,7 @@ int Boucle_principale(Joueur *pJoueur, sprite images[], Animation anim[], SDL_Re
 {
 	ClavierSouris entrees;     //Structure pour connaître l'état du clavier et de la souris
 	unsigned char descente[10]={true};	//Tableau pour savoir quand les missiles montent ou descendent
-	int tempsFPS=0, tempsAncienFPS=0, tempsChrono=0, tempsAncienChrono=0, ajoutAnim=false, etat=0, retour=1, missileTouche=0;
+	int tempsFPS=0, tempsAncienFPS=0, tempsChrono=0, tempsAncienChrono=0, ajoutAnim=false, etat=0, retour=1, missileTouche=0, enLecture;
 	FMOD_CHANNEL *pChannelEnCours=NULL;	//Contrôle des canaux audio
 	Map *pMap=NULL, *pMapNew=NULL;	//Pointeurs sur des structures Map
 	SDL_Event evenementPoubelle;	//Structure event pour purger la file des évènements
@@ -175,7 +175,9 @@ int Boucle_principale(Joueur *pJoueur, sprite images[], Animation anim[], SDL_Re
 
 			CollisionBonus(images, BOULE_MAGENTA, pMap);	//Si le joueur prend un bonus
 
-			if(!(infos.bonus & ~AUCUN_BONUS))
+			FMOD_System_GetChannel(pMoteurSon, S_BONUS+10, &pChannelEnCours);
+			FMOD_Channel_IsPlaying(pChannelEnCours, &enLecture);
+			if((infos.bonus & ~AUCUN_BONUS) && !enLecture)
 			{
 				FMOD_System_PlaySound(pMoteurSon, S_BONUS+10, pSons->bruits[S_BONUS], false, NULL);
 			}
@@ -446,7 +448,8 @@ for(i=5; i<10; i++)
 
 int DeplacementBoules(sprite images[], Map *pMap, ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
 {
-	int i=0;
+	int i=0, enLecture;
+	FMOD_CHANNEL *pChannelEnCours=NULL;
 	Collision collision={COLL_NONE, 0};
 	static int v_x1=0, v_y1=0, v_x2=0, v_x3=0;	// Variables de vitesse
 
@@ -471,7 +474,12 @@ int DeplacementBoules(sprite images[], Map *pMap, ClavierSouris *pEntrees, FMOD_
 	{
 		if((collision.etatColl & COLL_BOULE_BLEUE) || (collision.etatColl & COLL_BOULE_VERTE))
 		{
-			FMOD_System_PlaySound(pMoteurSon, S_BOULE_BOULE+10, pSons->bruits[S_BOULE_BOULE], false, NULL);
+			FMOD_System_GetChannel(pMoteurSon, S_BOULE_BOULE+10, &pChannelEnCours);
+			FMOD_Channel_IsPlaying(pChannelEnCours, &enLecture);
+			if (!enLecture)
+			{
+				FMOD_System_PlaySound(pMoteurSon, S_BOULE_BOULE+10, pSons->bruits[S_BOULE_BOULE], false, NULL);
+			}
 		}
 
 		images[BOULE_MAGENTA].position[0].y -= v_y1;
@@ -527,7 +535,12 @@ int DeplacementBoules(sprite images[], Map *pMap, ClavierSouris *pEntrees, FMOD_
 	{
 		if((collision.etatColl & COLL_BOULE_BLEUE) || (collision.etatColl & COLL_BOULE_VERTE))
 		{
-			FMOD_System_PlaySound(pMoteurSon, S_BOULE_BOULE+10, pSons->bruits[S_BOULE_BOULE], false, NULL);
+			FMOD_System_GetChannel(pMoteurSon, S_BOULE_BOULE+10, &pChannelEnCours);
+			FMOD_Channel_IsPlaying(pChannelEnCours, &enLecture);
+			if (!enLecture)
+			{
+				FMOD_System_PlaySound(pMoteurSon, S_BOULE_BOULE+10, pSons->bruits[S_BOULE_BOULE], false, NULL);
+			}
 		}
 
 		images[BOULE_MAGENTA].position[0].x -= v_x1;
@@ -616,7 +629,12 @@ int DeplacementBoules(sprite images[], Map *pMap, ClavierSouris *pEntrees, FMOD_
 	{
 		if((collision.etatColl & COLL_BOULE_MAGENTA) || (collision.etatColl & COLL_BOULE_VERTE))
 		{
-			FMOD_System_PlaySound(pMoteurSon, S_BOULE_BOULE+10, pSons->bruits[S_BOULE_BOULE], false, NULL);
+			FMOD_System_GetChannel(pMoteurSon, S_BOULE_BOULE+10, &pChannelEnCours);
+			FMOD_Channel_IsPlaying(pChannelEnCours, &enLecture);
+			if (!enLecture)
+			{
+				FMOD_System_PlaySound(pMoteurSon, S_BOULE_BOULE+10, pSons->bruits[S_BOULE_BOULE], false, NULL);
+			}
 		}
 
 		images[BOULE_BLEUE].position[0].x -= v_x2;
@@ -705,7 +723,12 @@ int DeplacementBoules(sprite images[], Map *pMap, ClavierSouris *pEntrees, FMOD_
 	{
 		if((collision.etatColl & COLL_BOULE_MAGENTA) || (collision.etatColl & COLL_BOULE_BLEUE))
 		{
-			FMOD_System_PlaySound(pMoteurSon, S_BOULE_BOULE+10, pSons->bruits[S_BOULE_BOULE], false, NULL);
+			FMOD_System_GetChannel(pMoteurSon, S_BOULE_BOULE+10, &pChannelEnCours);
+			FMOD_Channel_IsPlaying(pChannelEnCours, &enLecture);
+			if (!enLecture)
+			{
+				FMOD_System_PlaySound(pMoteurSon, S_BOULE_BOULE+10, pSons->bruits[S_BOULE_BOULE], false, NULL);
+			}
 		}
 
 		images[BOULE_VERTE].position[0].x -= v_x3;

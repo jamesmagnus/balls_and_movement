@@ -33,7 +33,7 @@ extern int TailleBloc, TailleBoule, TailleMissileH, TailleMissileW, BMusique, BS
 extern double Volume, Hauteur, Largeur;
 
 
-int Editeur (SDL_Renderer *pMoteurRendu, sprite images[], FMOD_SYSTEM *pMoteurSon, Sons *pSons, TTF_Font *polices[])
+int Editeur (SDL_Renderer *pMoteurRendu, sprite images[], FMOD_SYSTEM *pMoteurSon, Sons *pSons, TTF_Font *polices[], Joueur *pJoueur)
 {
 	Map *pMap = NULL;	//Pointeur sur une structure Map
 	int continuer=true, etat=0, objetPris=AUCUN_BONUS;
@@ -45,7 +45,7 @@ int Editeur (SDL_Renderer *pMoteurRendu, sprite images[], FMOD_SYSTEM *pMoteurSo
 	EntreesZero(&entrees);	//On initialise la structure des entrées
 
 	/* On définit les positions et les tailles des images, on charge une map vierge et on crée les boutons pour ajouter des missiles */
-	pMap = InitialisationEditeur(pMoteurRendu, images, polices);	
+	pMap = InitialisationEditeur(pMoteurRendu, images, polices, pJoueur);
 
 	while(SDL_PollEvent(&evenementPoubelle));	//On purge la file d'attente des évènements (si des touches ont été appuyées pendant le chargement)
 
@@ -57,7 +57,7 @@ int Editeur (SDL_Renderer *pMoteurRendu, sprite images[], FMOD_SYSTEM *pMoteurSo
 		if(temps - tempsAncien > T_FPS)
 		{
 			AffichageEditeur(pMoteurRendu, images, pMap, entrees, objetPris);
-			tempsAncien = temps;	//On garde le temps actuel dans une autre variable pour pouvoir faire la soustraction 
+			tempsAncien = temps;	//On garde le temps actuel dans une autre variable pour pouvoir faire la soustraction
 		}
 
 		/* On met à jour la map de l'éditeur et on récupère l'éventuel objet qui est sélectionné et qui suit le curseur pour l'affichage */
@@ -197,9 +197,9 @@ int Editeur (SDL_Renderer *pMoteurRendu, sprite images[], FMOD_SYSTEM *pMoteurSo
 }
 
 
-Map* InitialisationEditeur (SDL_Renderer *pMoteurRendu, sprite images[], TTF_Font *polices[])
+Map* InitialisationEditeur (SDL_Renderer *pMoteurRendu, sprite images[], TTF_Font *polices[], Joueur *pJoueur)
 {
-	Map* pMap = NULL;	//Pointeur vers une structure Map 
+	Map* pMap = NULL;	//Pointeur vers une structure Map
 	SDL_Surface *pSurfMissileH, *pSurfMissileV;		//Pointeurs vers des surfaces
 	SDL_Color blancOpaque = {255, 255, 255, SDL_ALPHA_OPAQUE};
 
@@ -215,9 +215,9 @@ Map* InitialisationEditeur (SDL_Renderer *pMoteurRendu, sprite images[], TTF_Fon
 	TTF_SizeText(polices[SNICKY], "Ajout missile V", &images[AJOUTER_MISSILE_V].position[0].w, &images[AJOUTER_MISSILE_V].position[0].h);
 	SDL_FreeSurface(pSurfMissileV);
 
-	pMap = ChargementNiveau(pMoteurRendu, "editeur", -1);	//On charge une map en mode 'éditeur' donc vierge
+	pMap = ChargementNiveau(pMoteurRendu, pJoueur, -1);	//On charge une map en mode 'éditeur' donc vierge
 
-	InitialisationPositions(images, "editeur", -1);		//On initialise les positions et les tailles des images en mode 'éditeur'
+	InitialisationPositions(images, pJoueur, -1);		//On initialise les positions et les tailles des images en mode 'éditeur'
 
 	return pMap;	//On renvoie l'adresse de la map
 }
@@ -227,7 +227,7 @@ int AffichageEditeur(SDL_Renderer *pMoteurRendu, sprite images[], Map* pMap, Cla
 {
 	/* Cette fonction s'occupe de l'affichage */
 
-	int i=0, j=0, k=0;               //Variables de comptage
+	int i=0;               //Variables de comptage
 	SDL_Point pointOrigine={0, 0};	//Coordonnées d'un point pour faire les rotations
 
 	/* On efface l'écran avec du noir */
@@ -283,7 +283,7 @@ int AffichageEditeur(SDL_Renderer *pMoteurRendu, sprite images[], Map* pMap, Cla
 int MiseAJourMap (Map *pMap, sprite images[], ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
 {
 	/* On retient ce qui est sélectionné même lorsque la fonction est rappelée plusieurs fois, ces variables sont statiques */
-	static int diaPris=AUCUN_BONUS, missilePris=0;	
+	static int diaPris=AUCUN_BONUS, missilePris=0;
 
 	/* On déplace l'objets qui est sélectionné par exemple une boule */
 	DeplacementObjetEditeur(pMoteurSon, pSons, images, pEntrees);
@@ -314,7 +314,7 @@ int VerifierEmplacements(sprite images[], Map *pMap)
 	/* Cette fonction vérifie les collisions et les alignements interdits, comme une boule dans le sol ou sur la trajectoire d'un missile */
 
 	int i=0, j=0;
-	Collision collision={COLL_NONE, 0};	//Structure pour retenir les collisions et l'indice du missile incriminé s'il y en a un 
+	Collision collision={COLL_NONE, 0};	//Structure pour retenir les collisions et l'indice du missile incriminé s'il y en a un
 
 	/* On teste chaque boule une par une */
 	for(i=BOULE_BLEUE; i<=BOULE_VERTE; i++)
@@ -340,7 +340,7 @@ int VerifierEmplacements(sprite images[], Map *pMap)
 	/* On vérifie si la boule que l'on teste est en collision avec quoi que ce soit */
 	CollisionDetect(images, i, pMap, &collision);
 
-		if(collision.etatColl & ~COLL_NONE)	//Si un seul bit est à 1 c'est qu'il y a une collision 
+		if(collision.etatColl & ~COLL_NONE)	//Si un seul bit est à 1 c'est qu'il y a une collision
 		{
 			return -2;
 		}
@@ -389,7 +389,7 @@ void DeplacementObjetEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, sprite images
 				pEntrees->souris.touches[C_MOLETTE] = false;	//On remet à zéro le clic de molette
 			}
 
-			
+
 			/* La position de l'image suit alors celle de la souris mais elle est centrée par rapport au curseur */
 			images[deplacement].position[0].x = pEntrees->souris.position.x - images[deplacement].position[0].w /2;
 			images[deplacement].position[0].y = pEntrees->souris.position.y - images[deplacement].position[0].h /2;
@@ -516,7 +516,7 @@ void MiseAJourMapMissileEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, ClavierSou
 				}
 			}
 
-			if (j != -1)	//Si on a trouvé un missile V pas encore placé on le place sinon il ne se passe rien 
+			if (j != -1)	//Si on a trouvé un missile V pas encore placé on le place sinon il ne se passe rien
 			{
 				images[MISSILE].position[i].x = pEntrees->souris.position.x;
 				images[MISSILE].position[i].y = pEntrees->souris.position.y;
@@ -646,7 +646,7 @@ void AffichageObjetCurseurEditeur(SDL_Renderer *pMoteurRendu, ClavierSouris *pEn
 	int angleCurseur=335;
 
 	/* On définit les coordonnées des différentes images que l'on pourrait avoir à coller sur celle de la souris */
-	images[MISSILE].position[10].x = images[GEMMES].position[0].x = images[CURSEUR].position[0].x = pEntrees->souris.position.x;	
+	images[MISSILE].position[10].x = images[GEMMES].position[0].x = images[CURSEUR].position[0].x = pEntrees->souris.position.x;
 	images[MISSILE].position[10].y = images[GEMMES].position[0].y = images[CURSEUR].position[0].y = pEntrees->souris.position.y;
 
 	/* Si il y a un bonus mais pas de missile on colle le bonus près de la souris */

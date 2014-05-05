@@ -3,7 +3,7 @@ Projet-ISN
 
 Fichier: main.h
 
-Contenu: Prototypes des fonctions contenues dans main.c
+Contenu: Prototypes des fonctions contenues dans main.c, les structures et les flags.
 
 Actions: Permet à l'ordinateur de connaître toutes les fonctions présentes dans le programme ainsi que leurs arguments.
 
@@ -19,6 +19,9 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 #define T_FPS 15
 #define T_ANIM 35
 #define _G_ 9.80665
+#define MODE_CAMPAGNE 1
+#define MODE_PERSO 2
+#define MODE_EDITEUR 3
 
 /* Flags pour les bonus */
 #define AUCUN_BONUS 0x000
@@ -61,26 +64,6 @@ typedef struct GdkImages	//Structure qui contient les 4 pixbufs, c'est à dire le
 	GdkPixbuf *img[4];
 } GdkImages;
 
-typedef struct Joueur	//Structure avec les informations relatives au joueur
-{
-	char pseudo[255];
-	char mdp[100];
-	int score_max;
-	int niveau_max;
-	int connexion;
-	char autre[9000];
-} Joueur;
-
-
-typedef struct InfoDeJeu	//Structure avec les infos de la partie
-{
-	char vies;
-	char viesInitiales;
-	long score;
-	int niveau;
-	int compteurTemps;
-	unsigned int bonus;
-} InfoDeJeu;
 
 /* Enumérations pour ne pas avoir à retenir les indices des tableaux */
 enum {BOULE_BLEUE, BOULE_MAGENTA, BOULE_VERTE, MISSILE, VORTEX_BLEU, VORTEX_VERT, GEMMES, CURSEUR, VIE, FOND_TEXTES, AJOUTER_MISSILE_H, AJOUTER_MISSILE_V};

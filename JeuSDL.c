@@ -36,7 +36,7 @@ extern int TailleBloc, TailleBoule, TailleMissileH, TailleMissileW, BMusique, BS
 extern double Volume, Hauteur, Largeur;
 extern InfoDeJeu infos;
 
-int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, const char mode[], Joueur *pJoueur)
+int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur)
 {
 	/* Cette fonction va appeler les fonctions d'initialisations de la SDL et lancer le jeu ou l'éditeur */
 
@@ -108,17 +108,17 @@ int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, const char mode[], Joueur *p
 	/* Traitement des éventuelles erreurs */
 	if(erreur == 1)
 	{
-		fprintf(pFichierErreur, "Erreur lors du chargement des images. Veuillez vérifier ressources\img\.\n");
+		fprintf(pFichierErreur, "Erreur lors du chargement des images. Veuillez vérifier ressources\img\... \n");
 		exit(EXIT_FAILURE);
 	}
 	else if (erreur == 2)
 	{
-		fprintf(pFichierErreur, "Erreur lors du chargement des polices. Veuillez vérifier ressources\fonts\.\n");
+		fprintf(pFichierErreur, "Erreur lors du chargement des polices. Veuillez vérifier ressources\fonts\... \n");
 		exit(EXIT_FAILURE);
 	}
 	else if (erreur == 3)
 	{
-		fprintf(pFichierErreur, "Erreur lors du chargement des animations. Veuillez vérifier ressources\anim\.\n");
+		fprintf(pFichierErreur, "Erreur lors du chargement des animations. Veuillez vérifier ressources\anim\... \n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -136,20 +136,21 @@ int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, const char mode[], Joueur *p
 		FMOD_Channel_SetPaused(channelEnCours, false);
 	}
 
-	/* On regarde si on appelée la fonction en mode jeu ou en mode editeur */
-	if (strcmp(mode, "jouer") == 0)
+	/* On regarde si on a appelé la fonction en mode jeu ou en mode éditeur */
+	if (pJoueur->mode == MODE_CAMPAGNE)
 	{
 		InitialiserInfos(pOptions, pJoueur);	//On définit les infos sur la partie en cours
 		Boucle_principale(pJoueur, images, anim, pMoteurRendu, pMoteurSon, pSons, polices);    //Boucle du jeu
-
-		if (pJoueur->connexion == 1)	//Si on était en mode connecté et non GUEST, on renvoie sur la base MySql l'avancement dans le jeu
-		{
-			SauverMySql(pJoueur);
-		}
+		SauverMySql(pJoueur);
 	}
-	else if (strcmp(mode, "editeur") == 0)	//Sinon mode éditeur
+	else if(pJoueur->mode == MODE_PERSO)
 	{
-		Editeur(pMoteurRendu, images, pMoteurSon, pSons, polices);	//On lance la boucle de l'éditeur
+		InitialiserInfos(pOptions, pJoueur);	//On définit les infos sur la partie en cours
+		Boucle_principale(pJoueur, images, anim, pMoteurRendu, pMoteurSon, pSons, polices);    //Boucle du jeu
+	}
+	else if (pJoueur->mode == MODE_EDITEUR)
+	{
+		Editeur(pMoteurRendu, images, pMoteurSon, pSons, polices, pJoueur);	//On lance la boucle de l'éditeur
 	}
 
 	/* Libération de la mémoire */
@@ -235,9 +236,17 @@ int SauverMySql(Joueur *pJoueur)
 void InitialiserInfos(Options *pOptions, Joueur *pJoueur)
 {
 	/* On définit les valeurs pour la partie qui va commencer à partir des options et des informations issues de la base MySql */
+	if(pJoueur->mode == MODE_CAMPAGNE)
+	{
+		infos.niveau = pJoueur->niveau_max;
+		infos.score = pJoueur->score_max;
+	}
+	else	//Mode perso
+	{
+		infos.niveau = 1;
+		infos.score = 1000;
+	}
 
-	infos.niveau = pJoueur->niveau_max;
-	infos.score = pJoueur->score_max;
 	infos.vies = pOptions->vies;
 	infos.viesInitiales = pOptions->vies;
 	infos.compteurTemps = 0;

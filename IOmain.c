@@ -212,7 +212,7 @@ int ChargementTextures(SDL_Renderer *pMoteurRendu, sprite images[])
 	}
 
 	/* On charge le coeur vide un indice au dessus de celui plein car il n'existe pas dans l'énumération */
-	sImages[VIE+1] = IMG_Load("ressources/img/heart_vide.png");	
+	sImages[VIE+1] = IMG_Load("ressources/img/heart_vide.png");
 	if(sImages[VIE+1] == NULL)
 	{
 		return -1;
@@ -605,7 +605,7 @@ int DestructionSurfaces(SDL_Surface *sImages[])
 }
 
 
-Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, char mode[], int level)
+Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level)
 {
 	int i=0, j=0, k=0;	//Compteur
 	SDL_Surface *pSurface = NULL, *pSurfaceFond = NULL;	//Deux pointeurs sur une surface
@@ -678,11 +678,21 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, char mode[], int level)
 		}
 	}
 
-	/* Enfin ouvre le fichier de niveau */
-	pFichierNiveau = fopen("ressources/level.lvl", "r");
+	/* Enfin ouvre le fichier de niveau selon le mode de jeu */
+	/* On ouvre un fichier correct pour le mode éditeur car il faut les tailles de map par défaut */
+	if(pJoueur->mode == MODE_CAMPAGNE || pJoueur->mode == MODE_EDITEUR)
+	{
+		//Vérification md5 du fichier à ajouter /////////////////////////
+		pFichierNiveau = fopen("ressources/level.lvl", "r");
+	}
+	else if (pJoueur->mode == MODE_PERSO)
+	{
+		pFichierNiveau = fopen("ressources/levelUser.lvl", "r");
+	}
+
 	if (pFichierNiveau == NULL)	//On vérifie
 	{
-		fprintf(pFichierErreur, "Erreur: le fichier level.lvl est introuvable\n");
+		fprintf(pFichierErreur, "Erreur: le fichier level.lvl ou levelUser.lvl est introuvable\n");
 		return NULL;
 	}
 
@@ -704,7 +714,7 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, char mode[], int level)
 		/* S'il y a un niveau à charger on commence par lire sa taille */
 		/* On convertie la chaîne en nombre */
 		fgets(ligne, 50, pFichierNiveau);
-		pMap->nbtiles_hauteur_monde = strtol(ligne, NULL, 10);	
+		pMap->nbtiles_hauteur_monde = strtol(ligne, NULL, 10);
 
 		fgets(ligne, 50, pFichierNiveau);
 		pMap->nbtiles_largeur_monde = strtol(ligne, NULL, 10);
@@ -739,7 +749,7 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, char mode[], int level)
 	}
 
 	/* Maintenant on initialise les tailles et les positions de toutes les images selon si on est en mode jeu ou en mode éditeur */
-	if (strcmp(mode, "jouer") == 0)
+	if (pJoueur->mode == MODE_CAMPAGNE || pJoueur->mode == MODE_PERSO)
 	{
 		while(strcmp(ligne, "#map\n") != 0)	//On avance dans le fichier tant qu'on a pas atteint le début de la map
 		{
@@ -792,7 +802,7 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, char mode[], int level)
 
 		fclose(pFichierNiveau);	//On ferme le fichier de niveau
 	}
-	else	//Si on est en mode éditeur
+	else if(pJoueur->mode == MODE_EDITEUR)	//Si on est en mode éditeur
 	{
 		for (i=0; i< pMap->nbtiles_largeur_monde; i++)
 		{
@@ -808,13 +818,13 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, char mode[], int level)
 	SDL_FreeSurface(pSurface);
 	SDL_FreeSurface(pSurfaceFond);	//On détruit les deux surfaces
 
-	return pMap;	//On renvoie l'adresse de la structure Map que l'on a créée et chargée 
+	return pMap;	//On renvoie l'adresse de la structure Map que l'on a créée et chargée
 }
 
 
 int DestructionMap(Map *pMap)
 {
-	int i;		//Compteur
+	int i;	//Compteur
 
 	/* On libère la mémoire prise par les malloc de la map et par les textures*/
 
@@ -857,9 +867,7 @@ void EntreesZero(ClavierSouris *pEntrees)
 
 	pEntrees->souris.scroll = 0;	//Scroll de la molette
 
-	pEntrees->fermeture = false;	//Evènement de fermeture
-
-	return 0;
+	pEntrees->fermeture = false;	//Évènement de fermeture
 }
 
 

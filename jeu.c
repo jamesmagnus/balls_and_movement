@@ -45,8 +45,8 @@ int Boucle_principale(Joueur *pJoueur, sprite images[], Animation anim[], SDL_Re
 
 	EntreesZero(&entrees);	//On initialise la structure
 
-	InitialisationPositions(images, "jouer", infos.niveau);	//On charge les positions des images pour le niveau
-	pMap = ChargementNiveau(pMoteurRendu, "jouer", infos.niveau);	//On charge la map du niveau
+	InitialisationPositions(images, pJoueur, infos.niveau);	//On charge les positions des images pour le niveau
+	pMap = ChargementNiveau(pMoteurRendu, pJoueur, infos.niveau);	//On charge la map du niveau
 
 	if(pMap == NULL)	//On vérifie que la map a bien été chargée
 	{
@@ -57,37 +57,38 @@ int Boucle_principale(Joueur *pJoueur, sprite images[], Animation anim[], SDL_Re
 
 	while (retour == 1)       //Boucle principale du jeu
 	{
-		if (ajoutAnim)
+		if (ajoutAnim)	//Tant qu'une animation est en cours on bloque les commandes en purgeant la file et en remettant à zéro
 		{
 			SDL_PollEvent(&evenementPoubelle);
 			EntreesZero(&entrees);
 		}
 		else
 		{
-			GestionEvenements(&entrees);     //Traitement des événements du clavier
+			GestionEvenements(&entrees);     //Traitement des événements du clavier et de la souris normalement
 		}
 
-		if(entrees.clavier[ECHAP] || entrees.fermeture)
+		if(entrees.clavier[ECHAP] || entrees.fermeture)	//Appuis sur échap ou sur Entrée, on demande à quitter
 		{
 			entrees.clavier[ECHAP] = false;
 
 			if(MessageInformations("Voulez-vous vraiment retourner au menu principal?", polices, pMoteurRendu, &entrees) == 1)
 			{
-				retour = 0;      //En cas d'appuie sur Echap on coupe la boucle.
+				retour = 0;      //En cas d'appuie sur Entrée on coupe la boucle.
 			}
 		}
 
-		if(entrees.clavier[F5])
+		if(entrees.clavier[F5])	//Appuis sur F5 on demande à recommencer le niveau
 		{
 			if(MessageInformations("Voulez-vous vraiment recommencer ce niveau ?", polices, pMoteurRendu, &entrees) == 1)
 			{
-				pMap = ChargementNiveau(pMoteurRendu, "jouer", infos.niveau);
-				InitialisationPositions(images, "jouer", infos.niveau);
+				/* En cas d'appuis sur Entrée on recharge le niveau */
+				pMap = ChargementNiveau(pMoteurRendu, pJoueur, infos.niveau);
+				InitialisationPositions(images, pJoueur, infos.niveau);
 				infos.compteurTemps = 0;
 			}
 		}
 
-		/* Maintenant on va changer les positions en fonction des valeurs du tableau 'clavier' et en fonction du temps */
+		/* Maintenant on va changer les positions en fonction des valeurs du tableau 'clavier' de la structure entrees*/	//ICI
 
 		tempsFPS = SDL_GetTicks();
 
@@ -108,7 +109,7 @@ int Boucle_principale(Joueur *pJoueur, sprite images[], Animation anim[], SDL_Re
 				infos.vies--;
 				infos.score -= 150;
 				infos.compteurTemps = 0;
-				InitialisationPositions(images, "jouer", infos.niveau);
+				InitialisationPositions(images, pJoueur, infos.niveau);
 			}
 			else if (etat >= 1)
 			{
@@ -133,14 +134,14 @@ int Boucle_principale(Joueur *pJoueur, sprite images[], Animation anim[], SDL_Re
 					anim[ANIM_0].pos.w = Arrondir(images[MISSILE].position[missileTouche].w + (0.06 * Largeur));
 				}
 
-				InitialisationPositions(images, "jouer", infos.niveau);
+				InitialisationPositions(images, pJoueur, infos.niveau);
 			}
 			else if (etat == -1)
 			{
 				infos.score += 250;
 				infos.score = (long)(infos.score-(0.75*infos.compteurTemps));
 				infos.niveau++;
-				pMapNew = ChargementNiveau(pMoteurRendu, "jouer", infos.niveau);
+				pMapNew = ChargementNiveau(pMoteurRendu, pJoueur, infos.niveau);
 
 				if (pMapNew == NULL)
 				{
@@ -167,9 +168,16 @@ int Boucle_principale(Joueur *pJoueur, sprite images[], Animation anim[], SDL_Re
 				}
 
 				infos.compteurTemps = 0;
-				InitialisationPositions(images, "jouer", infos.niveau);
+				InitialisationPositions(images, pJoueur, infos.niveau);
 				etat = 0;
 				infos.bonus &= AUCUN_BONUS;
+			}
+
+			CollisionBonus(images, BOULE_MAGENTA, pMap);	//Si le joueur prend un bonus
+
+			if(!(infos.bonus & ~AUCUN_BONUS))
+			{
+				FMOD_System_PlaySound(pMoteurSon, S_BONUS+10, pSons->bruits[S_BONUS], false, NULL);
 			}
 
 			if((infos.bonus & BONUS_VIE) && infos.vies < infos.viesInitiales)
@@ -257,7 +265,7 @@ int MiseAJourCoordonnees(ClavierSouris entrees, sprite images[], unsigned char d
 	v_gx = Arrondir(0.0085*Hauteur);
 
 	/* Maintenant on va changer les positions en fonction des valeurs du tableau 'clavier' */
-	DeplacementBoules(images, pMap, &entrees);
+	DeplacementBoules(images, pMap, &entrees, pMoteurSon, pSons);
 
 	images[CURSEUR].position[0].x = entrees.souris.position.x;
 	images[CURSEUR].position[0].y = entrees.souris.position.y;
@@ -436,10 +444,10 @@ for(i=5; i<10; i++)
 	return retour;
 }
 
-int DeplacementBoules(sprite images[], Map *pMap, ClavierSouris *pEntrees)
+int DeplacementBoules(sprite images[], Map *pMap, ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
 {
 	int i=0;
-	Collision collision={0, 0};
+	Collision collision={COLL_NONE, 0};
 	static int v_x1=0, v_y1=0, v_x2=0, v_x3=0;	// Variables de vitesse
 
 	if(pEntrees->clavier[HAUT] && v_y1 > Arrondir(-0.002*Largeur))
@@ -461,6 +469,11 @@ int DeplacementBoules(sprite images[], Map *pMap, ClavierSouris *pEntrees)
 
 	if ((collision.etatColl & COLL_BORD_BAS) || (collision.etatColl & COLL_BORD_HAUT) || (collision.etatColl & COLL_BOULE_BLEUE) || (collision.etatColl & COLL_BOULE_VERTE) || (collision.etatColl & COLL_DECOR))
 	{
+		if((collision.etatColl & COLL_BOULE_BLEUE) || (collision.etatColl & COLL_BOULE_VERTE))
+		{
+			FMOD_System_PlaySound(pMoteurSon, S_BOULE_BOULE+10, pSons->bruits[S_BOULE_BOULE], false, NULL);
+		}
+
 		images[BOULE_MAGENTA].position[0].y -= v_y1;
 
 		if (v_y1 > 0)
@@ -512,6 +525,11 @@ int DeplacementBoules(sprite images[], Map *pMap, ClavierSouris *pEntrees)
 
 	if ((collision.etatColl & COLL_BORD_GAUCHE) || (collision.etatColl & COLL_BORD_DROIT) || (collision.etatColl & COLL_BOULE_BLEUE) || (collision.etatColl & COLL_BOULE_VERTE) || (collision.etatColl & COLL_DECOR))
 	{
+		if((collision.etatColl & COLL_BOULE_BLEUE) || (collision.etatColl & COLL_BOULE_VERTE))
+		{
+			FMOD_System_PlaySound(pMoteurSon, S_BOULE_BOULE+10, pSons->bruits[S_BOULE_BOULE], false, NULL);
+		}
+
 		images[BOULE_MAGENTA].position[0].x -= v_x1;
 
 		if (v_x1 > 0)
@@ -596,6 +614,11 @@ int DeplacementBoules(sprite images[], Map *pMap, ClavierSouris *pEntrees)
 
 	if ((collision.etatColl & COLL_BORD_GAUCHE) || (collision.etatColl & COLL_BORD_DROIT) || (collision.etatColl & COLL_BORD_BAS) || (collision.etatColl & COLL_BOULE_MAGENTA) || (collision.etatColl & COLL_BOULE_VERTE) || (collision.etatColl & COLL_DECOR))
 	{
+		if((collision.etatColl & COLL_BOULE_MAGENTA) || (collision.etatColl & COLL_BOULE_VERTE))
+		{
+			FMOD_System_PlaySound(pMoteurSon, S_BOULE_BOULE+10, pSons->bruits[S_BOULE_BOULE], false, NULL);
+		}
+
 		images[BOULE_BLEUE].position[0].x -= v_x2;
 
 		if (v_x2 > 0)
@@ -680,6 +703,11 @@ int DeplacementBoules(sprite images[], Map *pMap, ClavierSouris *pEntrees)
 
 	if ((collision.etatColl & COLL_BORD_GAUCHE) || (collision.etatColl & COLL_BORD_DROIT) || (collision.etatColl & COLL_BORD_HAUT) || (collision.etatColl & COLL_BOULE_MAGENTA) || (collision.etatColl & COLL_BOULE_BLEUE) || (collision.etatColl & COLL_DECOR))
 	{
+		if((collision.etatColl & COLL_BOULE_MAGENTA) || (collision.etatColl & COLL_BOULE_BLEUE))
+		{
+			FMOD_System_PlaySound(pMoteurSon, S_BOULE_BOULE+10, pSons->bruits[S_BOULE_BOULE], false, NULL);
+		}
+
 		images[BOULE_VERTE].position[0].x -= v_x3;
 
 		if (v_x3 > 0)
@@ -714,6 +742,7 @@ int DeplacementBoules(sprite images[], Map *pMap, ClavierSouris *pEntrees)
 
 	return 0;
 }
+
 
 int VerifierMortOUGagne(sprite images[], Map *pMap, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
 {
@@ -771,7 +800,7 @@ int VerifierMortOUGagne(sprite images[], Map *pMap, FMOD_SYSTEM *pMoteurSon, Son
 	return 0;
 }
 
-void CollisionDetect(sprite images[], unsigned char indiceImage, Map *pMap, Collision *pCollision)
+void CollisionDetect(sprite images[], int indiceImage, Map *pMap, Collision *pCollision)
 {
 	pCollision->etatColl &= COLL_NONE;
 
@@ -783,8 +812,6 @@ void CollisionDetect(sprite images[], unsigned char indiceImage, Map *pMap, Coll
 
 	/*S'il y a une collision avec le décor*/
 	pCollision->etatColl |= CollisionDecor(images, indiceImage, pMap);
-
-	CollisionBonus(images, BOULE_MAGENTA, pMap);	//Si le joueur prend un bonus
 }
 
 int Affichage(SDL_Renderer *pMoteurRendu, sprite images[], TTF_Font *polices[], unsigned char descente[], Map* pMap, Animation anim[], int *ajoutAnim)
@@ -1321,18 +1348,25 @@ int AffichageTextes(SDL_Renderer *pMoteurRendu, TTF_Font *polices[], SDL_Texture
 	return 0;
 }
 
-int InitialisationPositions(sprite images[], char mode[], int level)
+int InitialisationPositions(sprite images[], Joueur *pJoueur, int level)
 {
 	int i, j, k;
 	double nb;
 	char *c = NULL;
 
-	if (strcmp(mode, "jouer") == 0)
+	if (pJoueur->mode == MODE_CAMPAGNE || pJoueur->mode == MODE_PERSO)
 	{
 		FILE *pFichierNiveau = NULL;
 		char ligne[20] = "";
 
-		pFichierNiveau = fopen("ressources/level.lvl", "r");
+		if(pJoueur->mode == MODE_CAMPAGNE)
+		{
+			pFichierNiveau = fopen("ressources/level.lvl", "r");
+		}
+		else if(pJoueur->mode == MODE_PERSO)
+		{
+			pFichierNiveau = fopen("ressources/levelUser.lvl", "r");
+		}
 
 		if (pFichierNiveau == NULL)
 		{
@@ -1585,7 +1619,7 @@ int InitialisationPositions(sprite images[], char mode[], int level)
 
 		fclose(pFichierNiveau);
 	}
-	else
+	else if(pJoueur->mode == MODE_EDITEUR)
 	{
 		for(i=0; i<10; i++)
 		{
@@ -1756,7 +1790,7 @@ int Arrondir(double nombre)
 	}
 }
 
-unsigned int CollisionBordure (sprite images[], char indiceImage)
+unsigned int CollisionBordure (sprite images[], int indiceImage)
 {
 	/* S'il y a une collision avec un des bords de la fenêtre */
 
@@ -1783,7 +1817,7 @@ unsigned int CollisionBordure (sprite images[], char indiceImage)
 	return COLL_NONE;
 }
 
-unsigned int CollisionImage (sprite images[], char indiceImage, Collision *pCollision)
+unsigned int CollisionImage (sprite images[], int indiceImage, Collision *pCollision)
 {
 	int i=0;
 
@@ -1867,7 +1901,7 @@ unsigned int CollisionImage (sprite images[], char indiceImage, Collision *pColl
 	return COLL_NONE;
 }
 
-unsigned int CollisionDecor (sprite images[], char indiceImage, Map* pMap)
+unsigned int CollisionDecor (sprite images[], int indiceImage, Map* pMap)
 {
 	if((pMap->plan[((images[indiceImage].position[0].x + images[indiceImage].position[0].w) / TailleBloc)][((images[indiceImage].position[0].y + images[indiceImage].position[0].h) / TailleBloc)]) != VIDE)
 	{
@@ -1892,7 +1926,7 @@ unsigned int CollisionDecor (sprite images[], char indiceImage, Map* pMap)
 	return COLL_NONE;
 }
 
-void CollisionBonus (sprite images[], char indiceImage, Map* pMap)
+void CollisionBonus (sprite images[], int indiceImage, Map* pMap)
 {
 	int i;
 
@@ -1956,9 +1990,6 @@ void CollisionBonus (sprite images[], char indiceImage, Map* pMap)
 				infos.bonus |= BONUS_VITESSE_BLEUE_FORT;
 				pMap->planObjets[((images[indiceImage].position[0].x + images[indiceImage].position[0].w) / TailleBloc)][((images[indiceImage].position[0].y + images[indiceImage].position[0].h) / TailleBloc)] = AUCUN_BONUS;
 				break;
-
-			default:
-				break;
 			}
 		}
 
@@ -2019,9 +2050,6 @@ void CollisionBonus (sprite images[], char indiceImage, Map* pMap)
 			case DIA_BLEUMARINE:
 				infos.bonus |= BONUS_VITESSE_BLEUE_FORT;
 				pMap->planObjets[((images[indiceImage].position[0].x + images[indiceImage].position[0].w) / TailleBloc)][(images[indiceImage].position[0].y / TailleBloc)] = AUCUN_BONUS;
-				break;
-
-			default:
 				break;
 			}
 		}
@@ -2084,9 +2112,6 @@ void CollisionBonus (sprite images[], char indiceImage, Map* pMap)
 				infos.bonus |= BONUS_VITESSE_BLEUE_FORT;
 				pMap->planObjets[(images[indiceImage].position[0].x / TailleBloc)][((images[indiceImage].position[0].y + images[indiceImage].position[0].h) / TailleBloc)] = AUCUN_BONUS;
 				break;
-
-			default:
-				break;
 			}
 		}
 
@@ -2148,9 +2173,6 @@ void CollisionBonus (sprite images[], char indiceImage, Map* pMap)
 				infos.bonus |= BONUS_VITESSE_BLEUE_FORT;
 				pMap->planObjets[(images[indiceImage].position[0].x / TailleBloc)][(images[indiceImage].position[0].y / TailleBloc)] = AUCUN_BONUS;
 				break;
-
-			default:
-				break;
 			}
 		}
 	}
@@ -2198,9 +2220,9 @@ int Perdu(SDL_Renderer *pMoteurRendu, sprite images[], Animation anim[], Map* pM
 
 		SDL_FreeSurface(information.surface);
 	}
-	
 
-	while(!entrees.clavier[ECHAP] && !entrees.clavier[ESPACE] && !entrees.clavier[ENTREE] && !entrees.fermeture)
+
+	while(!entrees.clavier[ESPACE] && !entrees.clavier[ENTREE] && !entrees.fermeture)
 	{
 		GestionEvenements(&entrees);
 		temps = SDL_GetTicks();
@@ -2333,7 +2355,7 @@ int Gagne(SDL_Renderer *pMoteurRendu, sprite images[], Map *pMap, TTF_Font *poli
 		SDL_FreeSurface(information.surface);
 	}
 
-	while(!entrees.clavier[ECHAP] && !entrees.clavier[ESPACE] && !entrees.clavier[ENTREE] && !entrees.fermeture)
+	while(!entrees.clavier[ESPACE] && !entrees.clavier[ENTREE] && !entrees.fermeture)
 	{
 		GestionEvenements(&entrees);
 		temps = SDL_GetTicks();

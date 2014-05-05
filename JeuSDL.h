@@ -14,7 +14,7 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 #define JEU_SDL_H_INCLUDED
 
 /* Prototypes des fonctions */
-int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, const char mode[], Joueur *pJoueur);
+int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur);
 void LibererMemoire(SDL_Renderer *pMoteurRendu, sprite images[], Animation anim[], TTF_Font *polices[], SDL_Window *pFenetre, Options *pOptions);
 int SauverMySql(Joueur *pJoueur);
 void InitialiserInfos(Options *pOptions, Joueur *pJoueur);

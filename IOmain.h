@@ -3,7 +3,7 @@ Projet-ISN
 
 Fichier: IOmain.h
 
-Contenu: Prototypes des fonctions contenues dans IOmain.c
+Contenu: Prototypes des fonctions contenues dans IOmain.c, et structures.
 
 Actions: Permet à l'ordinateur de connaître toutes les fonctions présentes dans le programme ainsi que leurs arguments.
 
@@ -11,7 +11,7 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 */
 
 #ifndef IOMAIN_H_INCLUDED
-#define IOMAIN_H_INCLUDED	//Protection contre les inclusons infinies
+#define IOMAIN_H_INCLUDED	//Protection contre les inclusions infinies
 
 /* Structures */
 typedef struct Souris       //Structure pour gérer les événements de la souris
@@ -76,6 +76,29 @@ typedef struct Collision		//Structure pour gérer les collisions
 	unsigned char numMissile;
 } Collision;
 
+typedef struct Joueur	//Structure avec les informations relatives au joueur
+{
+	char pseudo[255];
+	char mdp[100];
+	int score_max;
+	int niveau_max;
+	int connexion;
+	int mode;
+	char autre[9000];
+} Joueur;
+
+
+typedef struct InfoDeJeu	//Structure avec les infos de la partie
+{
+	char vies;
+	char viesInitiales;
+	long score;
+	int niveau;
+	int compteurTemps;
+	unsigned int bonus;
+} InfoDeJeu;
+
+
 /* Prototypes des fonctions */
 int Initialisation(SDL_Renderer **ppMoteurRendu, FILE *pFichierErreur, SDL_Window **ppFenetre, Options *pOptions);
 int Chargements (sprite images[], SDL_Renderer *pMoteurRendu, TTF_Font *polices[], Animation anim[]);
@@ -85,7 +108,7 @@ int DestructionSurfaces(SDL_Surface *sImages[]);
 int ChargementPolices(TTF_Font *polices[]);
 int ChargementMusic (Sons *pSons, FMOD_SYSTEM *pMoteurSon);
 int InitialisationSon(FMOD_SYSTEM **ppMoteurSon, FILE *pFichierErreur, Sons *pSons);
-Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, char mode[], int level);
+Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level);
 int DestructionMap(Map *pMap);
 void EntreesZero(ClavierSouris *pEntrees);
 int ChargementAnimations(SDL_Renderer *pMoteurRendu, Animation anim[]);

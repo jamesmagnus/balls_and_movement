@@ -79,7 +79,7 @@ void DestructionFenetre(GtkWidget *pWidget, gpointer pData)
 	gtk_dialog_add_action_widget(GTK_DIALOG(pFenetreDemande), pBoutonNON, GTK_RESPONSE_NO);
 	gtk_dialog_add_action_widget(GTK_DIALOG(pFenetreDemande), pBoutonOUI, GTK_RESPONSE_YES);
 
-	gtk_widget_show_all(pFenetreDemande);	//On affiche la fenêtre 
+	gtk_widget_show_all(pFenetreDemande);	//On affiche la fenêtre
 
 
 	/* On lance le dialogue et on regarde la réponse dans un switch */
@@ -106,7 +106,9 @@ void DemandeModeJeu(GtkWidget *pWidget, gpointer pData)
 {
 	GtkWidget *pWindow, *pBoutonCampagne, *pBoutonPerso, *pLabelBoutonCampagne, *pLabelBoutonPerso, *pHBox;
 	GdkRGBA couleurFond= {0.610, 0.805, 0.920, 1}, couleurBoutons= {0.650, 0.850, 0.925, 1}, couleurBoutonsEnfonce= {0.550, 0.655, 7.000, 1};
+	Joueur *pJoueur = (Joueur *)g_slist_nth_data((GSList*)pData, 6);	//On récupère le pointeur vers la structure Joueur dans la liste chaînée
 
+	/* On crée la fenêtre et on définit quelques caractéristiques */
 	pWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_position(GTK_WINDOW(pWindow), GTK_WIN_POS_CENTER);
 	gtk_window_set_icon_from_file(GTK_WINDOW(pWindow), "ressources/img/z.png", NULL);
@@ -115,74 +117,114 @@ void DemandeModeJeu(GtkWidget *pWidget, gpointer pData)
 	gtk_window_set_resizable(GTK_WINDOW(pWindow), false);
 	gtk_widget_override_background_color(pWindow, GTK_STATE_FLAG_NORMAL, &couleurFond);
 
+	/* On crée le bouton Campagne */
 	pBoutonCampagne = gtk_button_new();
 	gtk_widget_set_margin_left(pBoutonCampagne, 50);
 	gtk_widget_set_margin_top(pBoutonCampagne, 30);
 	gtk_widget_set_margin_bottom(pBoutonCampagne, 30);
-	//g_signal_connect(G_OBJECT(pBoutonCampagne), "clicked", G_CALLBACK(), pData);	//
+	g_signal_connect(G_OBJECT(pBoutonCampagne), "clicked", G_CALLBACK(LancerJeuModeCampagne), pData);//On connecte avec la fonction correspondante
 
+	/* Si le joueur n'est pas connecté on désactive la campagne */
+	if(pJoueur->connexion != 1)
+	{
+		gtk_widget_set_sensitive(pBoutonCampagne, false);
+	}
+
+	/* On crée le bouton Niveaux Perso */
 	pBoutonPerso = gtk_button_new();
 	gtk_widget_set_margin_right(pBoutonPerso, 50);
 	gtk_widget_set_margin_top(pBoutonPerso, 30);
 	gtk_widget_set_margin_bottom(pBoutonPerso, 30);
-	//g_signal_connect(G_OBJECT(pBoutonPerso), "clicked", G_CALLBACK(), pData);	//
+	g_signal_connect(G_OBJECT(pBoutonPerso), "clicked", G_CALLBACK(LancerJeuModePerso), pData);	//On connecte avec la fonction correspondante
 
-
+	/* On crée le texte du bouton Campagne */
 	pLabelBoutonCampagne = gtk_label_new("<span size=\"15000\"><b>Campagne</b></span>");
 	gtk_label_set_use_markup(GTK_LABEL(pLabelBoutonCampagne), true);
 	gtk_label_set_justify(GTK_LABEL(pLabelBoutonCampagne), GTK_JUSTIFY_CENTER);
 	gtk_widget_override_background_color(pLabelBoutonCampagne, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(pLabelBoutonCampagne, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
 	gtk_widget_set_size_request(pLabelBoutonCampagne, 180, 40);
-	
+
+	/* On crée le texte du bouton Niveaux Perso */
 	pLabelBoutonPerso = gtk_label_new("<span size=\"15000\"><b>Niveaux Perso</b></span>");
 	gtk_label_set_use_markup(GTK_LABEL(pLabelBoutonPerso), true);
 	gtk_label_set_justify(GTK_LABEL(pLabelBoutonPerso), GTK_JUSTIFY_CENTER);
 	gtk_widget_override_background_color(pLabelBoutonPerso, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(pLabelBoutonPerso, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
 	gtk_widget_set_size_request(pLabelBoutonPerso, 180, 40);
-	
 
+	/* On ajoute les textes dans les boutons */
 	gtk_container_add(GTK_CONTAINER(pBoutonCampagne), pLabelBoutonCampagne);
 	gtk_container_add(GTK_CONTAINER(pBoutonPerso), pLabelBoutonPerso);
 
+	/* On crée la boîte horizontale et on y met les 2 boutons */
 	pHBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_box_pack_start(pHBox, pBoutonCampagne, false, false, 0);
-	gtk_box_pack_end(pHBox, pBoutonPerso, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(pHBox), pBoutonCampagne, false, false, 0);
+	gtk_box_pack_end(GTK_BOX(pHBox), pBoutonPerso, false, false, 0);
 
+	/* On met la boîte dans la fenêtre */
 	gtk_container_add(GTK_CONTAINER(pWindow), pHBox);
 
-	gtk_widget_show_all(pWindow);
+	gtk_widget_show_all(pWindow);	//On affiche la fenêtre
 }
 
 
-void OuvrirSDL(GtkWidget *pWidget, gpointer pData)
+void LancerJeuModeCampagne(GtkWidget *pWidget, gpointer pData)
 {
 	Joueur *pJoueur = (Joueur *)g_slist_nth_data((GSList*)pData, 6);	//On récupère le pointeur vers la structure Joueur dans la liste chaînée
+	Sons *pSons = (Sons*)g_slist_nth_data((GSList*)pData, 4);	//De même avec celui vers la structure Sons
+	FMOD_SYSTEM *pMoteurSon = (FMOD_SYSTEM *)g_slist_nth_data((GSList*)pData, 3);	//De même avec celui vers la structure FMOD_SYSTEM
 
-		/* On lance le jeu en mode jeu ou en mode éditeur en fonction du bouton qui a été pressé */
-		if(pWidget == GTK_WIDGET(g_slist_nth_data((GSList*)pData, 1)))
-		{
-			//LancerJeu((FMOD_SYSTEM *)g_slist_nth_data((GSList*)pData, 3), (Sons *)g_slist_nth_data((GSList*)pData, 4), "jouer", pJoueur);
-			DemandeModeJeu(pWidget, pData);
-		}
-		else if(pWidget == GTK_WIDGET(g_slist_nth_data((GSList*)pData, 2)))
-		{
-			gtk_widget_hide(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On cache la fenêtre du menu
-			LancerJeu((FMOD_SYSTEM *)g_slist_nth_data((GSList*)pData, 3), (Sons *)g_slist_nth_data((GSList*)pData, 4), "editeur", pJoueur);
-		}
+	pJoueur->mode = MODE_CAMPAGNE;	//On définit le mode de jeu qui va être utilisé
 
-		gtk_widget_show_all(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On affiche à nouveau la fenêtre du menu
+	gtk_widget_destroy(gtk_widget_get_toplevel(pWidget));	//On détruit la fenêtre de choix de mode de jeu
+
+	/* On lance le jeu */
+	gtk_widget_hide(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On cache la fenêtre du menu
+	LancerJeu(pMoteurSon, pSons, pJoueur);
+	gtk_widget_show_all(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On affiche à nouveau la fenêtre du menu
+}
+
+
+void LancerJeuModePerso(GtkWidget *pWidget, gpointer pData)
+{
+	Joueur *pJoueur = (Joueur *)g_slist_nth_data((GSList*)pData, 6);	//On récupère le pointeur vers la structure Joueur dans la liste chaînée
+	Sons *pSons = (Sons*)g_slist_nth_data((GSList*)pData, 4);
+	FMOD_SYSTEM *pMoteurSon = (FMOD_SYSTEM *)g_slist_nth_data((GSList*)pData, 3);
+
+	pJoueur->mode = MODE_PERSO;		//On définit le mode de jeu qui va être utilisé
+
+	gtk_widget_destroy(gtk_widget_get_toplevel(pWidget));	//On détruit la fenêtre de choix de mode de jeu
+
+	/* On lance le jeu */
+	gtk_widget_hide(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On cache la fenêtre du menu
+	LancerJeu(pMoteurSon, pSons, pJoueur);
+	gtk_widget_show_all(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On affiche à nouveau la fenêtre du menu
+}
+
+
+void LancerEditeur(GtkWidget *pWidget, gpointer pData)
+{
+	Joueur *pJoueur = (Joueur *)g_slist_nth_data((GSList*)pData, 6);	//On récupère le pointeur vers la structure Joueur dans la liste chaînée
+	Sons *pSons = (Sons*)g_slist_nth_data((GSList*)pData, 4);		//De même avec celui vers la structure Sons
+	FMOD_SYSTEM *pMoteurSon = (FMOD_SYSTEM *)g_slist_nth_data((GSList*)pData, 3);	//De même avec celui vers la structure FMOD_SYSTEM
+
+	pJoueur->mode = MODE_EDITEUR;	//On définit le mode de jeu qui va être utilisé
+
+	/* On lance l'éditeur */
+	gtk_widget_hide(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On cache la fenêtre du menu
+	LancerJeu(pMoteurSon, pSons, pJoueur);
+	gtk_widget_show_all(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On affiche à nouveau la fenêtre du menu
 }
 
 
 void LancementCredits(GtkWidget *pWidget, gpointer pData)
 {
-	GtkWidget *lignesCredits[100] = {NULL};	//Tableau de 100 pointeurs pour chaque ligne de crédit 
-	GtkWidget *pVBox=NULL, *pWindow=NULL;	
+	GtkWidget *lignesCredits[100] = {NULL};	//Tableau de 100 pointeurs pour chaque ligne de crédit
+	GtkWidget *pVBox=NULL, *pWindow=NULL;
 	FMOD_CHANNEL *pChannelEnCours=NULL;
 	GdkRGBA couleurFond= {0.610, 0.805, 0.920, 1};	//Couleur du fond de la fenêtre
-	char credits[50][100];
+	char credits[50][100];	//Tableau de 50 chaînes de caractères
 	int nbLignes = ChargementCredits(credits), i=0;
 
 	/* On arrête la musique du menu */
@@ -192,7 +234,7 @@ void LancementCredits(GtkWidget *pWidget, gpointer pData)
 	FMOD_Sound_SetLoopCount(((Sons *)g_slist_nth_data(pData, 4))->music[M_CREDITS], -1);      // On active la lecture en boucle
 
 	/* On lit la musique des crédits */
-	FMOD_System_PlaySound((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_CREDITS, ((Sons *)g_slist_nth_data(pData, 4))->music[M_CREDITS], true, NULL); 
+	FMOD_System_PlaySound((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_CREDITS, ((Sons *)g_slist_nth_data(pData, 4))->music[M_CREDITS], true, NULL);
 	FMOD_System_GetChannel((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_CREDITS, &pChannelEnCours);
 	FMOD_Channel_SetVolume(pChannelEnCours, (float)(((Options*)g_slist_nth_data(pData, 5))->volume/100.0));
 	FMOD_Channel_SetPaused(pChannelEnCours, false);
@@ -223,12 +265,12 @@ void LancementCredits(GtkWidget *pWidget, gpointer pData)
 	/* Un peu de marge au-dessus et en-dessous et on met le titre dans la boîte */
 	g_object_set(lignesCredits[0], "margin-top", 10, NULL);
 	g_object_set(lignesCredits[0], "margin-bottom", 10, NULL);
-	gtk_box_pack_start(pVBox, lignesCredits[0], false, false, 0);
+	gtk_box_pack_start(GTK_BOX(pVBox), lignesCredits[0], false, false, 0);
 
 	/* On met les lignes dans la boîte */
 	for (i=1; i<nbLignes; i++)
 	{
-		gtk_box_pack_start(pVBox, lignesCredits[i], false, false, 0);
+		gtk_box_pack_start(GTK_BOX(pVBox), lignesCredits[i], false, false, 0);
 	}
 
 	/* On ajoute la boîte à la fenêtre */
@@ -736,7 +778,7 @@ gboolean ModifierOptionsRange1(GtkRange *range, GtkScrollType scroll, double val
 
 	pOptions->vies = (char)Arrondir(valeur);
 
-	return false;	//On renvoie 'false' pour propager le signal "change-value" à gtk 
+	return false;	//On renvoie 'false' pour propager le signal "change-value" à gtk
 }
 
 gboolean ModifierOptionsRange2(GtkRange *range, GtkScrollType scroll, double valeur, gpointer pData)
@@ -883,7 +925,7 @@ void ConnexionMySql(GtkWidget *pWidget, gpointer pData)
 
 	int i=0;	//Petit compteur
 
-	InitialiserJoueur(pJoueur);	//On initialise la structure Joueur pour qu'elle soit vierge 
+	InitialiserJoueur(pJoueur);	//On initialise la structure Joueur pour qu'elle soit vierge
 
 	gtk_widget_override_background_color(pWindowInfo, GTK_STATE_FLAG_NORMAL, &couleurFond);
 
@@ -912,7 +954,7 @@ void ConnexionMySql(GtkWidget *pWidget, gpointer pData)
 	{
 		mysql_query(mysql, "SELECT * FROM projetz");	//On sélectionne toutes les lignes de la base
 
-		resultat = mysql_use_result(mysql);	//On stocke le résulat 
+		resultat = mysql_use_result(mysql);	//On stocke le résulat
 
 		/* Tant qu'il y a encore une ligne, on découpe chaque colonne */
 		while ((row = mysql_fetch_row(resultat)) != NULL)

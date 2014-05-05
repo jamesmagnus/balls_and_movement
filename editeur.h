@@ -14,9 +14,9 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 #define EDITEUR_H_INCLUDED
 
 /* Prototypes des fonctions */
-Map* InitialisationEditeur (SDL_Renderer *pMoteurRendu, sprite images[], TTF_Font *polices[]);
+Map* InitialisationEditeur (SDL_Renderer *pMoteurRendu, sprite images[], TTF_Font *polices[], Joueur *pJoueur);
 int AffichageEditeur(SDL_Renderer *pMoteurRendu, sprite images[], Map* pMap, ClavierSouris entrees, int diaPris);
-int Editeur (SDL_Renderer *pMoteurRendu, sprite images[], FMOD_SYSTEM *pMoteurSon, Sons *pSons, TTF_Font *polices[]);
+int Editeur (SDL_Renderer *pMoteurRendu, sprite images[], FMOD_SYSTEM *pMoteurSon, Sons *pSons, TTF_Font *polices[], Joueur *pJoueur);
 int MiseAJourMap (Map *pMap, sprite images[], ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon, Sons *pSons);
 int VerifierEmplacements(sprite images[], Map *pMap);
 void DeplacementObjetEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, sprite images[], ClavierSouris *pEntrees);

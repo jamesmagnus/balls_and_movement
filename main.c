@@ -187,7 +187,8 @@ void CreerBoutons( GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWi
 
 	gtk_widget_set_sensitive(*pBoutonJouer, false);	//On désactive le bouton au début
 
-	g_signal_connect(G_OBJECT(*pBoutonJouer), "clicked", G_CALLBACK(OuvrirSDL), pListeElements); // On ouvre la fenêtre SDL au clique
+	/* On ouvre la fenêtre pour choisir le mode de jeu au clique */
+	g_signal_connect(G_OBJECT(*pBoutonJouer), "clicked", G_CALLBACK(DemandeModeJeu), pListeElements);
 
 	g_list_append((GList*)pListeElements, GTK_BUTTON(*pBoutonJouer)); //1
 
@@ -210,7 +211,7 @@ void CreerBoutons( GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWi
 
 	gtk_widget_set_sensitive(*pBoutonEditeur, false);	//On désactive le bouton au début
 
-	g_signal_connect(G_OBJECT(*pBoutonEditeur), "clicked", G_CALLBACK(OuvrirSDL), pListeElements);// On ouvre la fenêtre SDL au clic
+	g_signal_connect(G_OBJECT(*pBoutonEditeur), "clicked", G_CALLBACK(LancerEditeur), pListeElements);// On ouvre la fenêtre SDL de l'éditeur au clic
 
 	g_list_append((GList*)pListeElements, GTK_BUTTON(*pBoutonEditeur)); //2
 

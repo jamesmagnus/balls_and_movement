@@ -168,6 +168,7 @@ int Boucle_principale(Joueur *pJoueur, sprite images[], Animation anim[], SDL_Re
 				}
 
 				infos.compteurTemps = 0;
+				infos.score = 1000;
 				InitialisationPositions(images, pJoueur, infos.niveau);
 				etat = 0;
 				infos.bonus &= AUCUN_BONUS;

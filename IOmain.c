@@ -17,6 +17,7 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <md5.h>
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
@@ -682,7 +683,7 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level)
 	/* On ouvre un fichier correct pour le mode éditeur car il faut les tailles de map par défaut */
 	if(pJoueur->mode == MODE_CAMPAGNE || pJoueur->mode == MODE_EDITEUR)
 	{
-		//Vérification md5 du fichier à ajouter /////////////////////////
+		VerificationMD5("3CB9ED8BCD9B987BBE894CAE5B9D8FAA", "ressources/level.lvl");
 		pFichierNiveau = fopen("ressources/level.lvl", "r");
 	}
 	else if (pJoueur->mode == MODE_PERSO)
@@ -972,4 +973,49 @@ int MessageInformations(const char messageInfos[], TTF_Font *polices[], SDL_Rend
 	}
 }
 
+
+int VerificationMD5(char empreinte[], char nomFichier[])
+{
+/* Cette fonction permet de comparer l'empreinte md5 d'un fichier avec une connue pour vérifier qu'il n'a pas été corrompu par quelques personnes malveillantes */
+
+	FILE *pFichierATester = fopen(nomFichier, "rb");	//On ouvre le fichier en mode lecture binaire
+	md5_state_t etat;	//Structure pour le calcul md5
+	md5_byte_t md5Calcule[17]="", md5CalculeHEXA[33]="";	//Chaînes pour le calcul du md5 et pour la conversion en héxadécimal 
+	char *buffer= malloc(32768);	//On alloue un buffer de lecture de 32 768 octets (2^15)
+	int i=0;	//Compteur
+	size_t nbOctetsLus=0;	//Pour stocker le nombre d'octets lus à chaque tour de boucle ('size_t' est un typedef de 'unsigned int')
+
+	if(pFichierATester == NULL)	//On vérifie que l'ouverture du fichier à fonctionnée
+	{
+		return -1;
+	}
+
+	md5_init(&etat);	//Initialisation du calculateur md5
+
+	do
+	{
+		nbOctetsLus = fread(buffer, 1, 32768, pFichierATester);	//On lit 1*32768 octets dans le fichier que l'on place dans le buffer
+		/* On ajoute le buffer au md5, on précise la taille des données pour le calcul (32 768 sauf au dernier tour de boucle) */
+		md5_append(&etat, buffer, nbOctetsLus);	
+
+	}while(nbOctetsLus == 32768);	//Lorsqu'on a lu un nombre d'octet différent de 32 768 c'est que c'était la dernière partie du fichier
+
+
+	md5_finish(&etat, md5Calcule);	//On termine le calcul md5
+	md5Calcule[16] = '\0';	//On ajoute le caractère de fin de chaîne
+
+
+	while (md5Calcule[i] != '\0')	//Tant qu'on est pas arrivé au bout
+	{
+		sprintf(md5CalculeHEXA+(2*i), "%02X", md5Calcule[i]);	//On transcrit chaque octet du message md5 en héxa sur 2 chiffres
+		i++;
+	}
+
+	if(strcmp(empreinte, md5CalculeHEXA) != 0)
+	{
+		return 1;	//On renvoie 1 si les deux empreintes ne sont pas identiques
+	}
+
+	return 0;
+}
 //Fin du fichier IOmain.c

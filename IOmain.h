@@ -113,6 +113,7 @@ int DestructionMap(Map *pMap);
 void EntreesZero(ClavierSouris *pEntrees);
 int ChargementAnimations(SDL_Renderer *pMoteurRendu, Animation anim[]);
 int MessageInformations(const char messageInfos[], TTF_Font *polices[], SDL_Renderer *pMoteurRendu, ClavierSouris *pEntrees);
+int VerificationMD5(char empreinte[], char nomFichier[]);
 
 #endif // IOMAIN_H_INCLUDED
 

@@ -116,7 +116,7 @@ int Initialisation(SDL_Renderer **ppMoteurRendu, FILE *pFichierErreur, SDL_Windo
 }
 
 
-int Chargements(sprite images[], SDL_Renderer *pMoteurRendu, TTF_Font *polices[], Animation anim[])
+int Chargements(Sprite images[], SDL_Renderer *pMoteurRendu, TTF_Font *polices[], Animation anim[])
 {
 	if(ChargementTextures(pMoteurRendu ,images) == -1)	//On charge les images (boules, missile et vortexs)
 	{
@@ -137,7 +137,7 @@ int Chargements(sprite images[], SDL_Renderer *pMoteurRendu, TTF_Font *polices[]
 }
 
 
-int ChargementTextures(SDL_Renderer *pMoteurRendu, sprite images[])
+int ChargementTextures(SDL_Renderer *pMoteurRendu, Sprite images[])
 {
 	/* Cette fonction charge les images et les convertie en textures */
 
@@ -224,7 +224,7 @@ int ChargementTextures(SDL_Renderer *pMoteurRendu, sprite images[])
 		images[i].pTextures[0] = SDL_CreateTextureFromSurface(pMoteurRendu, sImages[i]);
 	}
 
-	/* Conversion du coeur vide, on le place dans le tableau des textures du sprite 'VIE' */
+	/* Conversion du coeur vide, on le place dans le tableau des textures du Sprite 'VIE' */
 	images[VIE].pTextures[1] = SDL_CreateTextureFromSurface(pMoteurRendu, sImages[VIE+1]);
 
 	DestructionSurfaces(sImages);       //Libération de la mémoire utilisée par les surfaces, elles sont inutiles puisqu'on les a converties en textures
@@ -980,7 +980,7 @@ int VerificationMD5(char empreinte[], char nomFichier[])
 
 	FILE *pFichierATester = fopen(nomFichier, "rb");	//On ouvre le fichier en mode lecture binaire
 	md5_state_t etat;	//Structure pour le calcul md5
-	md5_byte_t md5Calcule[17]="", md5CalculeHEXA[33]="";	//Chaînes pour le calcul du md5 et pour la conversion en héxadécimal 
+	md5_byte_t md5Calcule[17]="", md5CalculeHEXA[33]="";	//Chaînes pour le calcul du md5 et pour la conversion en héxadécimal
 	char *buffer= malloc(32768);	//On alloue un buffer de lecture de 32 768 octets (2^15)
 	int i=0;	//Compteur
 	size_t nbOctetsLus=0;	//Pour stocker le nombre d'octets lus à chaque tour de boucle ('size_t' est un typedef de 'unsigned int')
@@ -996,7 +996,7 @@ int VerificationMD5(char empreinte[], char nomFichier[])
 	{
 		nbOctetsLus = fread(buffer, 1, 32768, pFichierATester);	//On lit 1*32768 octets dans le fichier que l'on place dans le buffer
 		/* On ajoute le buffer au md5, on précise la taille des données pour le calcul (32 768 sauf au dernier tour de boucle) */
-		md5_append(&etat, buffer, nbOctetsLus);	
+		md5_append(&etat, buffer, nbOctetsLus);
 
 	}while(nbOctetsLus == 32768);	//Lorsqu'on a lu un nombre d'octet différent de 32 768 c'est que c'était la dernière partie du fichier
 

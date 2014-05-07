@@ -44,7 +44,7 @@ int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur)
 	SDL_Window *pFenetre = NULL;        //Pointeur sur la fenêtre
 	FMOD_CHANNEL *channelEnCours = NULL;    //Pour le contrôle des différents canaux audios
 
-	sprite images[50] = {{NULL}, {0}};   //Tableau des images (textures + positions)
+	Sprite images[50] = {{NULL}, {0}};   //Tableau des images (textures + positions)
 	TTF_Font *polices[10] = {NULL};		//Tableau des polices
 
 	Options *pOptions = NULL;	//Pointeur sur une structure Options
@@ -162,7 +162,7 @@ int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur)
 }
 
 
-void LibererMemoire(SDL_Renderer *pMoteurRendu, sprite images[], Animation anim[], TTF_Font *polices[], SDL_Window *pFenetre, Options *pOptions)
+void LibererMemoire(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[], TTF_Font *polices[], SDL_Window *pFenetre, Options *pOptions)
 {
 	int i=0, j=0;	//Compteurs
 
@@ -182,7 +182,7 @@ void LibererMemoire(SDL_Renderer *pMoteurRendu, sprite images[], Animation anim[
 		j=0;
 	}
 
-	/* On détruit les textures des sprites une par une, sprite par sprite */
+	/* On détruit les textures des Sprites une par une, Sprite par Sprite */
 	for(j=0, i=0; i<50; i++)
 	{
 		while(images[i].pTextures[j] != NULL)

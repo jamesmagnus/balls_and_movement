@@ -33,7 +33,7 @@ extern int TailleBloc, TailleBoule, TailleMissileH, TailleMissileW, BMusique, BS
 extern double Volume, Hauteur, Largeur;
 
 
-int Editeur (SDL_Renderer *pMoteurRendu, sprite images[], FMOD_SYSTEM *pMoteurSon, Sons *pSons, TTF_Font *polices[], Joueur *pJoueur)
+int Editeur (SDL_Renderer *pMoteurRendu, Sprite images[], FMOD_SYSTEM *pMoteurSon, Sons *pSons, TTF_Font *polices[], Joueur *pJoueur)
 {
 	Map *pMap = NULL;	//Pointeur sur une structure Map
 	int continuer=true, etat=0, objetPris=AUCUN_BONUS;
@@ -197,7 +197,7 @@ int Editeur (SDL_Renderer *pMoteurRendu, sprite images[], FMOD_SYSTEM *pMoteurSo
 }
 
 
-Map* InitialisationEditeur (SDL_Renderer *pMoteurRendu, sprite images[], TTF_Font *polices[], Joueur *pJoueur)
+Map* InitialisationEditeur (SDL_Renderer *pMoteurRendu, Sprite images[], TTF_Font *polices[], Joueur *pJoueur)
 {
 	Map* pMap = NULL;	//Pointeur vers une structure Map
 	SDL_Surface *pSurfMissileH, *pSurfMissileV;		//Pointeurs vers des surfaces
@@ -223,7 +223,7 @@ Map* InitialisationEditeur (SDL_Renderer *pMoteurRendu, sprite images[], TTF_Fon
 }
 
 
-int AffichageEditeur(SDL_Renderer *pMoteurRendu, sprite images[], Map* pMap, ClavierSouris entrees, int objetPris)
+int AffichageEditeur(SDL_Renderer *pMoteurRendu, Sprite images[], Map* pMap, ClavierSouris entrees, int objetPris)
 {
 	/* Cette fonction s'occupe de l'affichage */
 
@@ -280,7 +280,7 @@ int AffichageEditeur(SDL_Renderer *pMoteurRendu, sprite images[], Map* pMap, Cla
 }
 
 
-int MiseAJourMap (Map *pMap, sprite images[], ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
+int MiseAJourMap (Map *pMap, Sprite images[], ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
 {
 	/* On retient ce qui est sélectionné même lorsque la fonction est rappelée plusieurs fois, ces variables sont statiques */
 	static int diaPris=AUCUN_BONUS, missilePris=0;
@@ -309,7 +309,7 @@ int MiseAJourMap (Map *pMap, sprite images[], ClavierSouris *pEntrees, FMOD_SYST
 }
 
 
-int VerifierEmplacements(sprite images[], Map *pMap)
+int VerifierEmplacements(Sprite images[], Map *pMap)
 {
 	/* Cette fonction vérifie les collisions et les alignements interdits, comme une boule dans le sol ou sur la trajectoire d'un missile */
 
@@ -365,7 +365,7 @@ int VerifierEmplacements(sprite images[], Map *pMap)
 }
 
 
-void DeplacementObjetEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, sprite images[], ClavierSouris *pEntrees)
+void DeplacementObjetEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Sprite images[], ClavierSouris *pEntrees)
 {
 	int i=0;
 	static int deplacement = -1;	//On retient dans une variable statique si on a sélectionné un objet et lequel (-1 pas d'objet)
@@ -470,7 +470,7 @@ void MiseAjourMapEtBonusEditeur(ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon
 }
 
 
-void MiseAJourMapMissileEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, ClavierSouris *pEntrees, sprite images[], int *pMissilePris)
+void MiseAJourMapMissileEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, ClavierSouris *pEntrees, Sprite images[], int *pMissilePris)
 {
 	int i=0, j=0;	//Compteurs
 
@@ -595,7 +595,7 @@ void AmeliorationMap(Map *pMap)
 }
 
 
-void AffichageBonusEditeur(SDL_Renderer *pMoteurRendu, sprite images[])
+void AffichageBonusEditeur(SDL_Renderer *pMoteurRendu, Sprite images[])
 {
 	/* Cette fonction affiche les bonus dans leur cadre de sélection */
 
@@ -640,7 +640,7 @@ void AffichageBoxEditeur(SDL_Renderer *pMoteurRendu, ClavierSouris *pEntrees)
 }
 
 
-void AffichageObjetCurseurEditeur(SDL_Renderer *pMoteurRendu, ClavierSouris *pEntrees, sprite images[], int objetPris)
+void AffichageObjetCurseurEditeur(SDL_Renderer *pMoteurRendu, ClavierSouris *pEntrees, Sprite images[], int objetPris)
 {
 	SDL_Point pointOrigine={0, 0};	//Coordonnées du point d'origine de l'image pour faire la rotation
 	int angleCurseur=335;

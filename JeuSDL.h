@@ -15,7 +15,7 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 
 /* Prototypes des fonctions */
 int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur);
-void LibererMemoire(SDL_Renderer *pMoteurRendu, sprite images[], Animation anim[], TTF_Font *polices[], SDL_Window *pFenetre, Options *pOptions);
+void LibererMemoire(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[], TTF_Font *polices[], SDL_Window *pFenetre, Options *pOptions);
 int SauverMySql(Joueur *pJoueur);
 void InitialiserInfos(Options *pOptions, Joueur *pJoueur);
 

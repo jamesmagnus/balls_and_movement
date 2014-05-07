@@ -33,7 +33,7 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 extern int TailleBloc, TailleBoule, TailleMissileH, TailleMissileW, BMusique, BSons;		//Lien vers les variables globales déclarées dans main.c
 extern double Volume, Largeur, Hauteur;
 
-int SauvegardeNiveau(Map* pMap, sprite images[])
+int SauvegardeNiveau(Map* pMap, Sprite images[])
 {
 	FILE *pFichierNiveau = NULL;	//Pointeur sur le fichier de niveau
 	char tile[5] = "2\n";	//Chaîne pour enregistrer chaque bloc, par défaut c'est le bloc vide '2' avec un retour à la ligne '\n'
@@ -48,7 +48,7 @@ int SauvegardeNiveau(Map* pMap, sprite images[])
 		return -1;
 	}
 
-	fputs("#taille\n", pFichierNiveau);	//On écrit 
+	fputs("#taille\n", pFichierNiveau);	//On écrit
 
 	/* On met la taille de la map dans la chaîne et on écrit dans le fichier */
 	sprintf(chaine, "%d\n", pMap->nbtiles_hauteur_monde);

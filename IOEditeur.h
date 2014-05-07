@@ -14,7 +14,7 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 #define IOEDITEUR_H_INCLUDED	//Protection contre les inclusons infinies
 
 /* Prototypes des fonctions */
-int SauvegardeNiveau(Map* pMap, sprite images[]);
+int SauvegardeNiveau(Map* pMap, Sprite images[]);
 
 #endif // IOEDITEUR_H_INCLUDED
 

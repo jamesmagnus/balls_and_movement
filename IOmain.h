@@ -36,11 +36,11 @@ typedef struct Texte        //Structure pour afficher du texte avec la SDL
 	char chaines[100][200];
 } Texte;
 
-typedef struct sprite           //Structure pour les images à afficher dans le jeu
+typedef struct Sprite           //Structure pour les images à afficher dans le jeu
 {
 	SDL_Texture *pTextures[20];
 	SDL_Rect position[20];
-} sprite;
+} Sprite;
 
 typedef struct TileProp		//Structure pour les propriétés des tiles du décor
 {
@@ -101,9 +101,9 @@ typedef struct InfoDeJeu	//Structure avec les infos de la partie
 
 /* Prototypes des fonctions */
 int Initialisation(SDL_Renderer **ppMoteurRendu, FILE *pFichierErreur, SDL_Window **ppFenetre, Options *pOptions);
-int Chargements (sprite images[], SDL_Renderer *pMoteurRendu, TTF_Font *polices[], Animation anim[]);
+int Chargements (Sprite images[], SDL_Renderer *pMoteurRendu, TTF_Font *polices[], Animation anim[]);
 int GestionEvenements(ClavierSouris *entrees);
-int ChargementTextures(SDL_Renderer *pMoteurRendu, sprite images[]);
+int ChargementTextures(SDL_Renderer *pMoteurRendu, Sprite images[]);
 int DestructionSurfaces(SDL_Surface *sImages[]);
 int ChargementPolices(TTF_Font *polices[]);
 int ChargementMusic (Sons *pSons, FMOD_SYSTEM *pMoteurSon);

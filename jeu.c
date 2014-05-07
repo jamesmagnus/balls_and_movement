@@ -33,7 +33,7 @@ extern double Volume, Largeur, Hauteur;
 extern InfoDeJeu infos;
 
 
-int Boucle_principale(Joueur *pJoueur, sprite images[], Animation anim[], SDL_Renderer *pMoteurRendu, FMOD_SYSTEM *pMoteurSon, Sons *pSons, TTF_Font *polices[])
+int Boucle_principale(Joueur *pJoueur, Sprite images[], Animation anim[], SDL_Renderer *pMoteurRendu, FMOD_SYSTEM *pMoteurSon, Sons *pSons, TTF_Font *polices[])
 {
 	ClavierSouris entrees;     //Structure pour connaître l'état du clavier et de la souris
 	unsigned char descente[10]={true};	//Tableau pour savoir quand les missiles montent ou descendent
@@ -259,19 +259,31 @@ int Boucle_principale(Joueur *pJoueur, sprite images[], Animation anim[], SDL_Re
 	return retour;
 }
 
-int MiseAJourCoordonnees(ClavierSouris entrees, sprite images[], unsigned char descente[], Map *pMap, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
+int MiseAJourCoordonnees(ClavierSouris entrees, Sprite images[], unsigned char descente[], Map *pMap, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
 {
 	static unsigned char sautEnCoursBleue=false, sautEnCoursVerte=false, timerBleue=false, timerVerte=false;
 	static int v_gx=0, savePosBleue=0, savePosVerte=0, temps=0, tempsAncien=0;	// Variables de vitesse
 	int i=0, retour=0;
 	Collision collision={0, 0};
-	v_gx = Arrondir(0.0085*Hauteur);
+
 
 	/* Maintenant on va changer les positions en fonction des valeurs du tableau 'clavier' */
 	DeplacementBoules(images, pMap, &entrees, pMoteurSon, pSons);
 
-	images[CURSEUR].position[0].x = entrees.souris.position.x;
-	images[CURSEUR].position[0].y = entrees.souris.position.y;
+
+	DeplacementMissiles(images, descente);
+
+	Gravite(images, pMap, sautEnCoursBleue, sautEnCoursVerte);
+
+	retour = VerifierMortOUGagne(images, pMap, pMoteurSon, pSons);
+
+	return retour;
+}
+
+
+int Sauts(Sprite images[], Map *pMap, ClavierSouris *pEntrees, unsigned char *pSautEnCoursBleue, unsigned char *pSautEnCoursVerte)
+{
+
 
 	temps = SDL_GetTicks();
 
@@ -285,23 +297,23 @@ int MiseAJourCoordonnees(ClavierSouris entrees, sprite images[], unsigned char d
 		tempsAncien = 0;
 	}
 
+
 	if((entrees.clavier[ESPACE] || sautEnCoursBleue) && !timerBleue)
 	{
+		if(sautEnCoursBleue)
+			{
+				savePosBleue = SautBleue(&images[BOULE_BLEUE].position[0], &sautEnCoursBleue);
+				images[BOULE_BLEUE].position[0].y += savePosBleue;
+			}
+		else if (pMap->plan[Arrondir(images[BOULE_BLEUE].position[0].x + images[BOULE_BLEUE].position[0].w/2.0 - TailleBoule*0.3) /TailleBloc][Arrondir(images[BOULE_BLEUE].position[0].y + images[BOULE_BLEUE].position[0].h +1) /TailleBloc] != VIDE || pMap->plan[Arrondir(images[BOULE_BLEUE].position[0].x + images[BOULE_BLEUE].position[0].w/2.0 + TailleBoule*0.3) /TailleBloc][Arrondir(images[BOULE_BLEUE].position[0].y + images[BOULE_BLEUE].position[0].h +1) /TailleBloc] != VIDE)
+			{
+				savePosBleue = SautBleue(&images[BOULE_BLEUE].position[0], &sautEnCoursBleue);
+				images[BOULE_BLEUE].position[0].y += savePosBleue;
+			}
+
 		CollisionDetect(images, BOULE_BLEUE, pMap, &collision);
-		if(collision.etatColl == COLL_NONE || (collision.etatColl & COLL_VORTEX_BLEU) || (collision.etatColl & COLL_VORTEX_VERT) || (collision.etatColl & COLL_MISSILE))
-		{
-			if(sautEnCoursBleue)
-			{
-				savePosBleue = SautBleue(&images[BOULE_BLEUE].position[0], &sautEnCoursBleue);
-				images[BOULE_BLEUE].position[0].y += savePosBleue;
-			}
-			else if (pMap->plan[Arrondir(images[BOULE_BLEUE].position[0].x + images[BOULE_BLEUE].position[0].w/2.0 - TailleBoule*0.3) /TailleBloc][Arrondir(images[BOULE_BLEUE].position[0].y + images[BOULE_BLEUE].position[0].h +1) /TailleBloc] != VIDE || pMap->plan[Arrondir(images[BOULE_BLEUE].position[0].x + images[BOULE_BLEUE].position[0].w/2.0 + TailleBoule*0.3) /TailleBloc][Arrondir(images[BOULE_BLEUE].position[0].y + images[BOULE_BLEUE].position[0].h +1) /TailleBloc] != VIDE)
-			{
-				savePosBleue = SautBleue(&images[BOULE_BLEUE].position[0], &sautEnCoursBleue);
-				images[BOULE_BLEUE].position[0].y += savePosBleue;
-			}
-		}
-		else
+
+		if(!(collision.etatColl == COLL_NONE || (collision.etatColl & COLL_VORTEX_BLEU) || (collision.etatColl & COLL_VORTEX_VERT) || (collision.etatColl & COLL_MISSILE)))
 		{
 			images[BOULE_BLEUE].position[0].y -= savePosBleue;
 			savePosBleue=0;
@@ -312,21 +324,20 @@ int MiseAJourCoordonnees(ClavierSouris entrees, sprite images[], unsigned char d
 
 	if((entrees.clavier[ESPACE] || sautEnCoursVerte) && !timerVerte)
 	{
+		if(sautEnCoursVerte)
+			{
+				savePosVerte = SautVerte(&images[BOULE_VERTE].position[0], &sautEnCoursVerte);
+				images[BOULE_VERTE].position[0].y -= savePosVerte;
+			}
+		else if (pMap->plan[Arrondir(images[BOULE_VERTE].position[0].x + images[BOULE_VERTE].position[0].w/2.0 - TailleBoule*0.3) /TailleBloc][Arrondir(images[BOULE_VERTE].position[0].y -1)/ TailleBloc] != VIDE || pMap->plan[Arrondir(images[BOULE_VERTE].position[0].x + images[BOULE_VERTE].position[0].w/2.0 + TailleBoule*0.3) /TailleBloc][Arrondir(images[BOULE_VERTE].position[0].y -1)/ TailleBloc] != VIDE)
+			{
+				savePosVerte = SautVerte(&images[BOULE_VERTE].position[0], &sautEnCoursVerte);
+				images[BOULE_VERTE].position[0].y -= savePosVerte;
+			}
+
 		CollisionDetect(images, BOULE_VERTE, pMap, &collision);
-		if(collision.etatColl == COLL_NONE || (collision.etatColl & COLL_VORTEX_BLEU) || (collision.etatColl & COLL_VORTEX_VERT) || (collision.etatColl & COLL_MISSILE))
-		{
-			if(sautEnCoursVerte)
-			{
-				savePosVerte = SautVerte(&images[BOULE_VERTE].position[0], &sautEnCoursVerte);
-				images[BOULE_VERTE].position[0].y -= savePosVerte;
-			}
-			else if (pMap->plan[Arrondir(images[BOULE_VERTE].position[0].x + images[BOULE_VERTE].position[0].w/2.0 - TailleBoule*0.3) /TailleBloc][Arrondir(images[BOULE_VERTE].position[0].y -1)/ TailleBloc] != VIDE || pMap->plan[Arrondir(images[BOULE_VERTE].position[0].x + images[BOULE_VERTE].position[0].w/2.0 + TailleBoule*0.3) /TailleBloc][Arrondir(images[BOULE_VERTE].position[0].y -1)/ TailleBloc] != VIDE)
-			{
-				savePosVerte = SautVerte(&images[BOULE_VERTE].position[0], &sautEnCoursVerte);
-				images[BOULE_VERTE].position[0].y -= savePosVerte;
-			}
-		}
-		else
+
+		if(!(collision.etatColl == COLL_NONE || (collision.etatColl & COLL_VORTEX_BLEU) || (collision.etatColl & COLL_VORTEX_VERT) || (collision.etatColl & COLL_MISSILE)))
 		{
 			images[BOULE_VERTE].position[0].y += savePosVerte;
 			savePosVerte=0;
@@ -335,64 +346,14 @@ int MiseAJourCoordonnees(ClavierSouris entrees, sprite images[], unsigned char d
 		}
 	}
 
-	do
-	{
-		CollisionDetect(images, BOULE_BLEUE, pMap, &collision);
-		images[BOULE_BLEUE].position[0].y--;
-	}while((collision.etatColl & COLL_DECOR) && !sautEnCoursBleue);
-
-	do
-	{
-		CollisionDetect(images, BOULE_VERTE, pMap, &collision);
-		images[BOULE_VERTE].position[0].y++;
-	}while((collision.etatColl & COLL_DECOR) && !sautEnCoursVerte);
-
-for(i=0; i<5; i++)
-{
-	if(images[MISSILE].position[i].y < (Hauteur-images[MISSILE].position[i].h) && descente[i] == 1)
-	{
-		images[MISSILE].position[i].y +=  Arrondir(0.003*Largeur);
-
-		if (images[MISSILE].position[i].y >= (Hauteur-images[MISSILE].position[i].h))
-		{
-			descente[i] = 0;
-		}
-	}
-
-	if((images[MISSILE].position[i].y > 0) && descente[i] == 0)
-	{
-		images[MISSILE].position[i].y -= Arrondir(0.003*Largeur);
-
-		if (images[MISSILE].position[i].y <= 0)
-		{
-			descente[i] = 1;
-		}
-	}
+	return 0;
 }
 
-for(i=5; i<10; i++)
+
+int Gravite(Sprite images[], Map *pMap, unsigned char sautEnCoursBleue, unsigned char sautEnCoursVerte)
 {
-	if(images[MISSILE].position[i].x < Largeur && descente[i] == 1)
-	{
-		images[MISSILE].position[i].x +=  Arrondir(0.003*Largeur);
-
-		if (images[MISSILE].position[i].x >= Largeur)
-		{
-			descente[i] = 0;
-		}
-	}
-
-	if((images[MISSILE].position[i].x > 0) && descente[i] == 0)
-	{
-		images[MISSILE].position[i].x -= Arrondir(0.003*Largeur);
-
-		if (images[MISSILE].position[i].x - images[MISSILE].position[i].h <= 0)
-		{
-			descente[i] = 1;
-		}
-	}
-}
-
+	int i=0, v_gx = Arrondir(0.0085*Hauteur);
+	Collision collision={COLL_NONE, 0};
 
 	if(sautEnCoursBleue == false)
 	{
@@ -442,12 +403,65 @@ for(i=5; i<10; i++)
 		}
 	}
 
-	retour = VerifierMortOUGagne(images, pMap, pMoteurSon, pSons);
-
-	return retour;
+	return 0;
 }
 
-int DeplacementBoules(sprite images[], Map *pMap, ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
+
+int DeplacementMissiles(Sprite images[], unsigned char descente[])
+{
+	int i=0;
+
+	for(i=0; i<5; i++)
+{
+	if(images[MISSILE].position[i].y < (Hauteur-images[MISSILE].position[i].h) && descente[i] == 1)
+	{
+		images[MISSILE].position[i].y +=  Arrondir(0.003*Largeur);
+
+		if (images[MISSILE].position[i].y >= (Hauteur-images[MISSILE].position[i].h))
+		{
+			descente[i] = 0;
+		}
+	}
+
+	if((images[MISSILE].position[i].y > 0) && descente[i] == 0)
+	{
+		images[MISSILE].position[i].y -= Arrondir(0.003*Largeur);
+
+		if (images[MISSILE].position[i].y <= 0)
+		{
+			descente[i] = 1;
+		}
+	}
+}
+
+for(i=5; i<10; i++)
+{
+	if(images[MISSILE].position[i].x < Largeur && descente[i] == 1)
+	{
+		images[MISSILE].position[i].x +=  Arrondir(0.003*Largeur);
+
+		if (images[MISSILE].position[i].x >= Largeur)
+		{
+			descente[i] = 0;
+		}
+	}
+
+	if((images[MISSILE].position[i].x > 0) && descente[i] == 0)
+	{
+		images[MISSILE].position[i].x -= Arrondir(0.003*Largeur);
+
+		if (images[MISSILE].position[i].x - images[MISSILE].position[i].h <= 0)
+		{
+			descente[i] = 1;
+		}
+	}
+}
+
+return 0;
+}
+
+
+int DeplacementBoules(Sprite images[], Map *pMap, ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
 {
 	int i=0, enLecture;
 	FMOD_CHANNEL *pChannelEnCours=NULL;
@@ -768,7 +782,7 @@ int DeplacementBoules(sprite images[], Map *pMap, ClavierSouris *pEntrees, FMOD_
 }
 
 
-int VerifierMortOUGagne(sprite images[], Map *pMap, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
+int VerifierMortOUGagne(Sprite images[], Map *pMap, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
 {
 	FMOD_CHANNEL *musicEnCours = NULL;
 	Collision collision={0, 0};
@@ -824,7 +838,7 @@ int VerifierMortOUGagne(sprite images[], Map *pMap, FMOD_SYSTEM *pMoteurSon, Son
 	return 0;
 }
 
-void CollisionDetect(sprite images[], int indiceImage, Map *pMap, Collision *pCollision)
+void CollisionDetect(Sprite images[], int indiceImage, Map *pMap, Collision *pCollision)
 {
 	pCollision->etatColl &= COLL_NONE;
 
@@ -838,7 +852,7 @@ void CollisionDetect(sprite images[], int indiceImage, Map *pMap, Collision *pCo
 	pCollision->etatColl |= CollisionDecor(images, indiceImage, pMap);
 }
 
-int Affichage(SDL_Renderer *pMoteurRendu, sprite images[], TTF_Font *polices[], unsigned char descente[], Map* pMap, Animation anim[], int *ajoutAnim)
+int Affichage(SDL_Renderer *pMoteurRendu, Sprite images[], TTF_Font *polices[], unsigned char descente[], Map* pMap, Animation anim[], int *ajoutAnim)
 {
 	SDL_Rect posFond;
 
@@ -963,7 +977,7 @@ int AffichageMap(SDL_Renderer *pMoteurRendu, Map *pMap)
 	return 0;
 }
 
-int AffichageVies(SDL_Renderer *pMoteurRendu, sprite images[])
+int AffichageVies(SDL_Renderer *pMoteurRendu, Sprite images[])
 {
 	int i;
 
@@ -1173,7 +1187,7 @@ int AffichageVies(SDL_Renderer *pMoteurRendu, sprite images[])
 	return 0;
 }
 
-int AffichageBonus(SDL_Renderer *pMoteurRendu, Map *pMap, sprite images[])
+int AffichageBonus(SDL_Renderer *pMoteurRendu, Map *pMap, Sprite images[])
 {
 	int i, j;
 
@@ -1267,7 +1281,7 @@ int AffichageBonus(SDL_Renderer *pMoteurRendu, Map *pMap, sprite images[])
 	return 0;
 }
 
-int AffichageImages(SDL_Renderer *pMoteurRendu, sprite images[], Animation anim[], unsigned char descente[], int *pAjoutAnim)
+int AffichageImages(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[], unsigned char descente[], int *pAjoutAnim)
 {
 	static unsigned int angleVortex=360;
 	int i=0;
@@ -1372,7 +1386,7 @@ int AffichageTextes(SDL_Renderer *pMoteurRendu, TTF_Font *polices[], SDL_Texture
 	return 0;
 }
 
-int InitialisationPositions(sprite images[], Joueur *pJoueur, int level)
+int InitialisationPositions(Sprite images[], Joueur *pJoueur, int level)
 {
 	int i, j, k;
 	double nb;
@@ -1814,7 +1828,7 @@ int Arrondir(double nombre)
 	}
 }
 
-unsigned int CollisionBordure (sprite images[], int indiceImage)
+unsigned int CollisionBordure (Sprite images[], int indiceImage)
 {
 	/* S'il y a une collision avec un des bords de la fenêtre */
 
@@ -1841,7 +1855,7 @@ unsigned int CollisionBordure (sprite images[], int indiceImage)
 	return COLL_NONE;
 }
 
-unsigned int CollisionImage (sprite images[], int indiceImage, Collision *pCollision)
+unsigned int CollisionImage (Sprite images[], int indiceImage, Collision *pCollision)
 {
 	int i=0;
 
@@ -1925,7 +1939,7 @@ unsigned int CollisionImage (sprite images[], int indiceImage, Collision *pColli
 	return COLL_NONE;
 }
 
-unsigned int CollisionDecor (sprite images[], int indiceImage, Map* pMap)
+unsigned int CollisionDecor (Sprite images[], int indiceImage, Map* pMap)
 {
 	if((pMap->plan[((images[indiceImage].position[0].x + images[indiceImage].position[0].w) / TailleBloc)][((images[indiceImage].position[0].y + images[indiceImage].position[0].h) / TailleBloc)]) != VIDE)
 	{
@@ -1950,7 +1964,7 @@ unsigned int CollisionDecor (sprite images[], int indiceImage, Map* pMap)
 	return COLL_NONE;
 }
 
-void CollisionBonus (sprite images[], int indiceImage, Map* pMap)
+void CollisionBonus (Sprite images[], int indiceImage, Map* pMap)
 {
 	int i;
 
@@ -2202,7 +2216,7 @@ void CollisionBonus (sprite images[], int indiceImage, Map* pMap)
 	}
 }
 
-int Perdu(SDL_Renderer *pMoteurRendu, sprite images[], Animation anim[], Map* pMap, TTF_Font *polices[])
+int Perdu(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[], Map* pMap, TTF_Font *polices[])
 {
 	SDL_Surface *psFondPerdu = NULL;
 	SDL_Texture *pFondPerdu = NULL;
@@ -2261,7 +2275,7 @@ int Perdu(SDL_Renderer *pMoteurRendu, sprite images[], Animation anim[], Map* pM
 	return 0;
 }
 
-int PerduAffichage(SDL_Renderer *pMoteurRendu, sprite images[], Animation anim[], SDL_Texture *pFondPerdu, Map *pMap, Texte *pInformation, int *pAjoutAnim)
+int PerduAffichage(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[], SDL_Texture *pFondPerdu, Map *pMap, Texte *pInformation, int *pAjoutAnim)
 {
 	static SDL_Rect pos, posFond;
 	int i=0;
@@ -2334,7 +2348,7 @@ int LectureAnimation(SDL_Renderer *pMoteurRendu, Animation anim[], int animNB)
 	return 0;
 }
 
-int Gagne(SDL_Renderer *pMoteurRendu, sprite images[], Map *pMap, TTF_Font *polices[])
+int Gagne(SDL_Renderer *pMoteurRendu, Sprite images[], Map *pMap, TTF_Font *polices[])
 {
 	SDL_Surface *pSurfFondGagne = NULL;
 	SDL_Texture *pTextureFondGagne = NULL;
@@ -2396,7 +2410,7 @@ int Gagne(SDL_Renderer *pMoteurRendu, sprite images[], Map *pMap, TTF_Font *poli
 	return 0;
 }
 
-int GagneAffichage(SDL_Renderer *pMoteurRendu, sprite images[], SDL_Texture *pTextureFondGagne, Map *pMap, Texte *pInformation)
+int GagneAffichage(SDL_Renderer *pMoteurRendu, Sprite images[], SDL_Texture *pTextureFondGagne, Map *pMap, Texte *pInformation)
 {
 	static SDL_Rect pos, posFond;
 	int i=0;

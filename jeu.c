@@ -5,7 +5,7 @@ Fichier: jeu.c
 
 Contenu: Fonctions principales du jeu: la boucle, la gestion des collisions, l'affichage ...
 
-Actions: C'est ici que sont effectuées les tâches principales du programme, la boucle principale, le rendu à l'écran.
+Actions: C'est ici que sont effectuées les tâches principales du jeu, la boucle principale, le rendu à l'écran, les collisions, ...
 
 Bibliothèques utilisées: Bibliothèques standards, SDL, SDL_image, SDL_ttf, FMOD, GTK
 
@@ -32,32 +32,41 @@ extern int TailleBloc, TailleBoule, TailleMissileH, TailleMissileW, BMusique, BS
 extern double Volume, Largeur, Hauteur;
 extern InfoDeJeu infos;
 
-
 int Boucle_principale(Joueur *pJoueur, Sprite images[], Animation anim[], SDL_Renderer *pMoteurRendu, FMOD_SYSTEM *pMoteurSon, Sons *pSons, TTF_Font *polices[])
 {
 	ClavierSouris entrees;     //Structure pour connaître l'état du clavier et de la souris
 	unsigned char descente[10]={true};	//Tableau pour savoir quand les missiles montent ou descendent
-	int tempsFPS=0, tempsAncienFPS=0, tempsChrono=0, tempsAncienChrono=0, ajoutAnim=false, etat=0, retour=1, missileTouche=0, enLecture;
+	unsigned char ajoutAnim=false;
+	unsigned int tempsFPS=0, tempsAncienFPS=0;	//Différents temps pour les calculs
+	int differenceFPS=0, etat=0, control=JEU_EN_COURS, etatNiveau;
 	FMOD_CHANNEL *pChannelEnCours=NULL;	//Contrôle des canaux audio
-	Map *pMap=NULL, *pMapNew=NULL;	//Pointeurs sur des structures Map
+	Map *pMap=NULL;	//Pointeurs sur des structures Map
 	SDL_Event evenementPoubelle;	//Structure event pour purger la file des évènements
-	char chaine[100];	//Chaîne pour travailler
 
 	EntreesZero(&entrees);	//On initialise la structure
 
 	InitialisationPositions(images, pJoueur, infos.niveau);	//On charge les positions des images pour le niveau
-	pMap = ChargementNiveau(pMoteurRendu, pJoueur, infos.niveau);	//On charge la map du niveau
+	pMap = ChargementNiveau(pMoteurRendu, pJoueur, infos.niveau, &etatNiveau);	//On charge la map du niveau
 
 	if(pMap == NULL)	//On vérifie que la map a bien été chargée
 	{
-		retour = -1;
+		if(etatNiveau == CHARGEMENT_ERREUR || etatNiveau == CHARGEMENT_FICHIER_CORROMPU)	//Erreur de chargement
+		{
+			control = JEU_FIN_ERREUR_CHARGEMENT;
+		}
+		else if(etatNiveau == CHARGEMENT_GAGNE)
+		{
+			control = JEU_FIN;	//Fin normale, on a tout fait, on a déjà gagné
+		}
 	}
 
 	while (SDL_PollEvent(&evenementPoubelle));	//On purge la file des évènements
 
-	while (retour == 1)       //Boucle principale du jeu
+
+	/* Boucle principale du jeu */
+	while (control == JEU_EN_COURS)       
 	{
-		if (ajoutAnim)	//Tant qu'une animation est en cours on bloque les commandes en purgeant la file et en remettant à zéro
+		if (ajoutAnim)	//Tant qu'une animation est en cours on bloque les commandes en purgeant la file et en remettant à zéro la structure
 		{
 			SDL_PollEvent(&evenementPoubelle);
 			EntreesZero(&entrees);
@@ -73,7 +82,7 @@ int Boucle_principale(Joueur *pJoueur, Sprite images[], Animation anim[], SDL_Re
 
 			if(MessageInformations("Voulez-vous vraiment retourner au menu principal?", polices, pMoteurRendu, &entrees) == 1)
 			{
-				retour = 0;      //En cas d'appuie sur Entrée on coupe la boucle.
+				control = JEU_FIN;      //En cas d'appuie sur Entrée on coupe la boucle.
 			}
 		}
 
@@ -82,161 +91,63 @@ int Boucle_principale(Joueur *pJoueur, Sprite images[], Animation anim[], SDL_Re
 			if(MessageInformations("Voulez-vous vraiment recommencer ce niveau ?", polices, pMoteurRendu, &entrees) == 1)
 			{
 				/* En cas d'appuis sur Entrée on recharge le niveau */
-				pMap = ChargementNiveau(pMoteurRendu, pJoueur, infos.niveau);
+				pMap = ChargementNiveau(pMoteurRendu, pJoueur, infos.niveau, &etatNiveau);
 				InitialisationPositions(images, pJoueur, infos.niveau);
 				infos.compteurTemps = 0;
+				infos.score = 1000;
 			}
 		}
 
-		/* Maintenant on va changer les positions en fonction des valeurs du tableau 'clavier' de la structure entrees*/	//ICI
+		/* Maintenant on va mettre à jour les coordonnées et faire l'affichage */
 
-		tempsFPS = SDL_GetTicks();
+		tempsFPS = SDL_GetTicks();	//On prend le temps écoulé depuis l'initialisation de la SDL
 
-		if(tempsFPS - tempsAncienFPS > T_FPS)
+		differenceFPS = tempsFPS - tempsAncienFPS;	//On soustrait
+
+		if(differenceFPS > T_FPS)	//On regarde s'il s'est écoulé plus de T_FPS ms depuis le dernier affichage
 		{
-			tempsChrono = SDL_GetTicks();
-
-			if(tempsChrono - tempsAncienChrono >= 1000)
-			{
-				infos.compteurTemps++;
-				tempsAncienChrono = tempsChrono;
-			}
-
-			etat = MiseAJourCoordonnees(entrees, images, descente, pMap, pMoteurSon, pSons);
-
-			if(etat == 2)
-			{
-				infos.vies--;
-				infos.score -= 150;
-				infos.compteurTemps = 0;
-				InitialisationPositions(images, pJoueur, infos.niveau);
-			}
-			else if (etat >= 1)
-			{
-				infos.vies--;
-				infos.score -= 150;
-				infos.compteurTemps = 0;
-				ajoutAnim = true;
-				missileTouche = (etat-1) /100;
-
-				if (missileTouche >= 5)
-				{
-					anim[ANIM_0].pos.x = Arrondir(images[MISSILE].position[missileTouche].x - (0.03 * 1280));
-					anim[ANIM_0].pos.y = Arrondir(images[MISSILE].position[missileTouche].y - (0.03 * Largeur));
-					anim[ANIM_0].pos.h = Arrondir(images[MISSILE].position[missileTouche].w + (0.06 * Largeur));
-					anim[ANIM_0].pos.w = Arrondir(images[MISSILE].position[missileTouche].h + (0.03 * Largeur));
-				}
-				else
-				{
-					anim[ANIM_0].pos.x = Arrondir(images[MISSILE].position[missileTouche].x - (0.03 * Largeur));
-					anim[ANIM_0].pos.y = Arrondir(images[MISSILE].position[missileTouche].y - (0.03 * Largeur));
-					anim[ANIM_0].pos.h = Arrondir(images[MISSILE].position[missileTouche].h + (0.03 * Largeur));
-					anim[ANIM_0].pos.w = Arrondir(images[MISSILE].position[missileTouche].w + (0.06 * Largeur));
-				}
-
-				InitialisationPositions(images, pJoueur, infos.niveau);
-			}
-			else if (etat == -1)
-			{
-				infos.score += 250;
-				infos.score = (long)(infos.score-(0.75*infos.compteurTemps));
-				infos.niveau++;
-				pMapNew = ChargementNiveau(pMoteurRendu, pJoueur, infos.niveau);
-
-				if (pMapNew == NULL)
-				{
-					if(BMusique)
-					{
-						FMOD_System_GetChannel(pMoteurSon, M_JEU, &pChannelEnCours);
-						FMOD_Channel_SetPaused(pChannelEnCours, true);
-
-						FMOD_System_PlaySound(pMoteurSon, M_GAGNE, pSons->music[M_GAGNE], true, NULL);
-						FMOD_System_GetChannel(pMoteurSon, M_GAGNE, &pChannelEnCours);
-						FMOD_Channel_SetVolume(pChannelEnCours, Volume/100.0);
-						FMOD_Channel_SetPaused(pChannelEnCours, false);
-					}
-
-					Gagne(pMoteurRendu, images, pMap, polices);
-					break;
-				}
-				else
-				{
-					sprintf(chaine, "%d:%ld;", infos.niveau-1, infos.score);
-					strcat(pJoueur->autre, chaine);
-					DestructionMap(pMap);
-					pMap = pMapNew;
-				}
-
-				infos.compteurTemps = 0;
-				infos.score = 1000;
-				InitialisationPositions(images, pJoueur, infos.niveau);
-				etat = 0;
-				infos.bonus &= AUCUN_BONUS;
-			}
-
-			CollisionBonus(images, BOULE_MAGENTA, pMap);	//Si le joueur prend un bonus
-
-			FMOD_System_GetChannel(pMoteurSon, S_BONUS+10, &pChannelEnCours);
-			FMOD_Channel_IsPlaying(pChannelEnCours, &enLecture);
-			if((infos.bonus & ~AUCUN_BONUS) && !enLecture)
-			{
-				FMOD_System_PlaySound(pMoteurSon, S_BONUS+10, pSons->bruits[S_BONUS], false, NULL);
-			}
-
-			if((infos.bonus & BONUS_VIE) && infos.vies < infos.viesInitiales)
-			{
-				infos.vies++;
-				infos.bonus &= ~BONUS_VIE;
-			}
-			else if (infos.bonus & BONUS_VIE)
-			{
-				infos.score += 50;
-				infos.bonus &= ~BONUS_VIE;
-			}
-
-			if (infos.bonus & BONUS_SCORE_FAIBLE)
-			{
-				infos.score += 100;
-				infos.bonus &= ~BONUS_SCORE_FAIBLE;
-			}
-
-			if (infos.bonus & BONUS_SCORE_FORT)
-			{
-				infos.score += 220;
-				infos.bonus &= ~BONUS_SCORE_FORT;
-			}
+			MiseAJourCoordonnees(entrees, images, descente, pMap, pMoteurSon, pSons);
 
 			/* Ensuite on effectue l'affichage */
 			Affichage(pMoteurRendu, images, polices, descente, pMap, anim, &ajoutAnim);
 
 			tempsAncienFPS = tempsFPS;
-
-			if(infos.vies == 0)
-			{
-				if(BMusique)
-				{
-					FMOD_System_GetChannel(pMoteurSon, M_JEU, &pChannelEnCours);
-					FMOD_Channel_SetPaused(pChannelEnCours, true);
-
-					FMOD_System_PlaySound(pMoteurSon, M_PERDU, pSons->music[M_PERDU], true, NULL);
-					FMOD_System_GetChannel(pMoteurSon, M_PERDU, &pChannelEnCours);
-					FMOD_Channel_SetVolume(pChannelEnCours, Volume/100.0);
-					FMOD_Channel_SetPaused(pChannelEnCours, false);
-				}
-
-				Perdu(pMoteurRendu, images, anim, pMap, polices);
-				retour = infos.score;
-			}
 		}
 
-		SDL_Delay(1);
+		/* On regarde si le joueur a gagné ou s'il s'est fait tuer */
+		etat = VerifierMortOUGagne(images, pMap, pMoteurSon, pSons);
+		TraitementEtatDuNiveau(pMoteurRendu, pMoteurSon, pSons, &pMap, pJoueur, images, polices, anim, &etat, &ajoutAnim, &control);
+
+		if(infos.vies == 0)	//S'il ne lui reste plus de vie
+		{
+			if(BMusique)
+			{
+				FMOD_System_GetChannel(pMoteurSon, M_JEU, &pChannelEnCours);	//On arrête la musique du jeu
+				FMOD_Channel_SetPaused(pChannelEnCours, true);
+
+				FMOD_System_PlaySound(pMoteurSon, M_PERDU, pSons->music[M_PERDU], true, NULL);		//On joue la musique quand on a perdu
+				FMOD_System_GetChannel(pMoteurSon, M_PERDU, &pChannelEnCours);
+				FMOD_Channel_SetVolume(pChannelEnCours, Volume/100.0);
+				FMOD_Channel_SetPaused(pChannelEnCours, false);
+			}
+
+			Perdu(pMoteurRendu, images, anim, pMap, polices);	//On affiche l'écran de fin quand on a perdu
+		}
+
+		DetectionBonus(images, BOULE_MAGENTA, pMap);	//Si le joueur prend un bonus
+
+		/* On s'occupe d'ajouter de la vie ou du score selon les bonus pris, on désactive les bonus ensuite et on joue un son */
+		TraitementBonus(pMoteurSon, pSons);
+
+		Chrono();	//Mise à jour du compteur de temps du niveau
+
+		SDL_Delay(1);	//Petit délais d'au moins 1 ms pour éviter les bugs d'affichage et une surcharge du processeur
 	}
 
-	if (retour != -1)
+	if (control != JEU_FIN_ERREUR_CHARGEMENT)
 	{
 		DestructionMap(pMap);
 	}
-
 
 	if (BMusique)
 	{
@@ -256,58 +167,57 @@ int Boucle_principale(Joueur *pJoueur, Sprite images[], Animation anim[], SDL_Re
 	pJoueur->niveau_max = infos.niveau - 1;
 	pJoueur->score_max = infos.score;
 
-	return retour;
+	return control;	//? WTF IS THAT VARIABLE ????
 }
 
 int MiseAJourCoordonnees(ClavierSouris entrees, Sprite images[], unsigned char descente[], Map *pMap, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
 {
-	static unsigned char sautEnCoursBleue=false, sautEnCoursVerte=false, timerBleue=false, timerVerte=false;
-	static int v_gx=0, savePosBleue=0, savePosVerte=0, temps=0, tempsAncien=0;	// Variables de vitesse
-	int i=0, retour=0;
-	Collision collision={0, 0};
-
+	static unsigned char sautEnCoursBleue=false, sautEnCoursVerte=false;
+	static int v_gx=0; 	// Variables de vitesse
 
 	/* Maintenant on va changer les positions en fonction des valeurs du tableau 'clavier' */
 	DeplacementBoules(images, pMap, &entrees, pMoteurSon, pSons);
 
+	Sauts(images, pMap, &entrees, &sautEnCoursBleue, &sautEnCoursVerte);
 
 	DeplacementMissiles(images, descente);
 
 	Gravite(images, pMap, sautEnCoursBleue, sautEnCoursVerte);
 
-	retour = VerifierMortOUGagne(images, pMap, pMoteurSon, pSons);
-
-	return retour;
+	return 0;
 }
-
 
 int Sauts(Sprite images[], Map *pMap, ClavierSouris *pEntrees, unsigned char *pSautEnCoursBleue, unsigned char *pSautEnCoursVerte)
 {
-
+	static unsigned char timerBleue=false, timerVerte=false;
+	static unsigned int temps=0, tempsAncien=0;
+	static int savePosBleue=0, savePosVerte=0, difference=0;
+	Collision collision={COLL_NONE, 0};
 
 	temps = SDL_GetTicks();
 
-	if (temps - tempsAncien >= 700)
+	difference = temps - tempsAncien;
+
+	if (difference >= 500)
 	{
 		tempsAncien = temps;
 		timerBleue = timerVerte = false;
 	}
-	else if (temps < tempsAncien)
+	else if (difference < 0)
 	{
 		tempsAncien = 0;
 	}
 
-
-	if((entrees.clavier[ESPACE] || sautEnCoursBleue) && !timerBleue)
+	if((pEntrees->clavier[ESPACE] || *pSautEnCoursBleue) && !timerBleue)
 	{
-		if(sautEnCoursBleue)
+		if(*pSautEnCoursBleue)
 			{
-				savePosBleue = SautBleue(&images[BOULE_BLEUE].position[0], &sautEnCoursBleue);
+				savePosBleue = SautBleue(&images[BOULE_BLEUE].position[0], pSautEnCoursBleue);
 				images[BOULE_BLEUE].position[0].y += savePosBleue;
 			}
 		else if (pMap->plan[Arrondir(images[BOULE_BLEUE].position[0].x + images[BOULE_BLEUE].position[0].w/2.0 - TailleBoule*0.3) /TailleBloc][Arrondir(images[BOULE_BLEUE].position[0].y + images[BOULE_BLEUE].position[0].h +1) /TailleBloc] != VIDE || pMap->plan[Arrondir(images[BOULE_BLEUE].position[0].x + images[BOULE_BLEUE].position[0].w/2.0 + TailleBoule*0.3) /TailleBloc][Arrondir(images[BOULE_BLEUE].position[0].y + images[BOULE_BLEUE].position[0].h +1) /TailleBloc] != VIDE)
 			{
-				savePosBleue = SautBleue(&images[BOULE_BLEUE].position[0], &sautEnCoursBleue);
+				savePosBleue = SautBleue(&images[BOULE_BLEUE].position[0], pSautEnCoursBleue);
 				images[BOULE_BLEUE].position[0].y += savePosBleue;
 			}
 
@@ -317,21 +227,21 @@ int Sauts(Sprite images[], Map *pMap, ClavierSouris *pEntrees, unsigned char *pS
 		{
 			images[BOULE_BLEUE].position[0].y -= savePosBleue;
 			savePosBleue=0;
-			sautEnCoursBleue=false;
+			*pSautEnCoursBleue=false;
 			timerBleue=true;
 		}
 	}
 
-	if((entrees.clavier[ESPACE] || sautEnCoursVerte) && !timerVerte)
+	if((pEntrees->clavier[ESPACE] || *pSautEnCoursVerte) && !timerVerte)
 	{
-		if(sautEnCoursVerte)
+		if(*pSautEnCoursVerte)
 			{
-				savePosVerte = SautVerte(&images[BOULE_VERTE].position[0], &sautEnCoursVerte);
+				savePosVerte = SautVerte(&images[BOULE_VERTE].position[0], pSautEnCoursVerte);
 				images[BOULE_VERTE].position[0].y -= savePosVerte;
 			}
 		else if (pMap->plan[Arrondir(images[BOULE_VERTE].position[0].x + images[BOULE_VERTE].position[0].w/2.0 - TailleBoule*0.3) /TailleBloc][Arrondir(images[BOULE_VERTE].position[0].y -1)/ TailleBloc] != VIDE || pMap->plan[Arrondir(images[BOULE_VERTE].position[0].x + images[BOULE_VERTE].position[0].w/2.0 + TailleBoule*0.3) /TailleBloc][Arrondir(images[BOULE_VERTE].position[0].y -1)/ TailleBloc] != VIDE)
 			{
-				savePosVerte = SautVerte(&images[BOULE_VERTE].position[0], &sautEnCoursVerte);
+				savePosVerte = SautVerte(&images[BOULE_VERTE].position[0], pSautEnCoursVerte);
 				images[BOULE_VERTE].position[0].y -= savePosVerte;
 			}
 
@@ -341,14 +251,13 @@ int Sauts(Sprite images[], Map *pMap, ClavierSouris *pEntrees, unsigned char *pS
 		{
 			images[BOULE_VERTE].position[0].y += savePosVerte;
 			savePosVerte=0;
-			sautEnCoursVerte=false;
+			*pSautEnCoursVerte=false;
 			timerVerte=true;
 		}
 	}
 
 	return 0;
 }
-
 
 int Gravite(Sprite images[], Map *pMap, unsigned char sautEnCoursBleue, unsigned char sautEnCoursVerte)
 {
@@ -406,7 +315,6 @@ int Gravite(Sprite images[], Map *pMap, unsigned char sautEnCoursBleue, unsigned
 	return 0;
 }
 
-
 int DeplacementMissiles(Sprite images[], unsigned char descente[])
 {
 	int i=0;
@@ -459,7 +367,6 @@ for(i=5; i<10; i++)
 
 return 0;
 }
-
 
 int DeplacementBoules(Sprite images[], Map *pMap, ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
 {
@@ -781,8 +688,7 @@ int DeplacementBoules(Sprite images[], Map *pMap, ClavierSouris *pEntrees, FMOD_
 	return 0;
 }
 
-
-int VerifierMortOUGagne(Sprite images[], Map *pMap, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
+char VerifierMortOUGagne(Sprite images[], Map *pMap, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
 {
 	FMOD_CHANNEL *musicEnCours = NULL;
 	Collision collision={0, 0};
@@ -797,26 +703,26 @@ int VerifierMortOUGagne(Sprite images[], Map *pMap, FMOD_SYSTEM *pMoteurSon, Son
 			FMOD_System_GetChannel(pMoteurSon, S_BOULE_BOUM+10, &musicEnCours);
 			FMOD_Channel_SetVolume(musicEnCours, Volume/100.0);
 			FMOD_Channel_SetPaused(musicEnCours,  false);
-			return 1 + 100*collision.numMissile;
+			return collision.numMissile;
 		}
 	}
 
 	CollisionDetect(images, BOULE_BLEUE, pMap, &collision);
 	if (collision.etatColl & COLL_BORD_BAS)
 	{
-		return 2;
+		return MORT_BORDURE;
 	}
 
 	CollisionDetect(images, BOULE_VERTE, pMap, &collision);
 	if (collision.etatColl & COLL_BORD_HAUT)
 	{
-		return 2;
+		return MORT_BORDURE;
 	}
 
 	CollisionDetect(images, BOULE_MAGENTA, pMap, &collision);
 	if ((collision.etatColl & COLL_BORD_DROIT) || (collision.etatColl & COLL_BORD_GAUCHE) || (collision.etatColl & COLL_BORD_BAS) || (collision.etatColl & COLL_BORD_HAUT))
 	{
-		return 2;
+		return MORT_BORDURE;
 	}
 
 	CollisionDetect(images, BOULE_BLEUE, pMap, &collision);
@@ -831,11 +737,167 @@ int VerifierMortOUGagne(Sprite images[], Map *pMap, FMOD_SYSTEM *pMoteurSon, Son
 			FMOD_System_GetChannel(pMoteurSon, S_SORTIE+10, &musicEnCours);
 			FMOD_Channel_SetVolume(musicEnCours, Volume/130.0);
 			FMOD_Channel_SetPaused(musicEnCours,  false);
-			return -1;
+			return GAGNE;
+		}
+	}
+
+	return RIEN;
+}
+
+int TraitementEtatDuNiveau(SDL_Renderer *pMoteurRendu, FMOD_SYSTEM *pMoteurSon, Sons *pSons, Map **ppMap, Joueur *pJoueur, Sprite images[], TTF_Font *polices[], Animation anim[], int *pEtat, unsigned char *pAjoutAnim, int *pControl)
+{
+	char missileTouche =-1;
+	int etatNiveau;
+	Map *pMapNew=NULL;
+	FMOD_CHANNEL *pChannelEnCours=NULL;
+	char chaine[100];	//Chaîne pour travailler
+
+	if(*pEtat == MORT_BORDURE)
+	{
+		infos.vies--;	//On enlève une vie
+		infos.score -= 150;	//On enlève du score
+		infos.compteurTemps = 0;	//On remet le compteur de temps à zéro
+		InitialisationPositions(images, pJoueur, infos.niveau);	//On recommence
+	}
+	else if (*pEtat >= 0)	//Mort par un missile
+	{
+		/* On enlève de la vie, on remet le temps à zéro et on lance l'animation */
+		infos.vies--;
+		infos.score -= 150;
+		infos.compteurTemps = 0;
+		*pAjoutAnim = true;
+		missileTouche = *pEtat;	//On récupère le numéro du missile qui a explosé
+
+		/* On définit la taille et l'emplacement de l'animation */
+		if (missileTouche >= 5)	//Missiles V
+		{
+			anim[ANIM_0].pos.x = Arrondir(images[MISSILE].position[missileTouche].x - (0.03 * 1280));
+			anim[ANIM_0].pos.y = Arrondir(images[MISSILE].position[missileTouche].y - (0.03 * Largeur));
+			anim[ANIM_0].pos.h = Arrondir(images[MISSILE].position[missileTouche].w + (0.06 * Largeur));
+			anim[ANIM_0].pos.w = Arrondir(images[MISSILE].position[missileTouche].h + (0.03 * Largeur));
+		}
+		else	//Missile H
+		{
+			anim[ANIM_0].pos.x = Arrondir(images[MISSILE].position[missileTouche].x - (0.03 * Largeur) - images[MISSILE].position[missileTouche].h);
+			anim[ANIM_0].pos.y = Arrondir(images[MISSILE].position[missileTouche].y - (0.03 * Largeur));
+			anim[ANIM_0].pos.h = Arrondir(images[MISSILE].position[missileTouche].h + (0.03 * Largeur));
+			anim[ANIM_0].pos.w = Arrondir(images[MISSILE].position[missileTouche].w + (0.06 * Largeur));
+		}
+
+		InitialisationPositions(images, pJoueur, infos.niveau);	//On recommence
+	}
+	else if (*pEtat == GAGNE)	//Si on a gagné le niveau en cours
+	{
+		infos.score += 350; //On gagne 350 en score
+		infos.score = (long)(infos.score-(0.75*infos.compteurTemps));	//On perd 75% du temps mis pour effectuer le niveau
+		infos.niveau++;	//Niveau suivant
+
+		/* On charge le niveau suivant dans un autre pointeur */
+		pMapNew = ChargementNiveau(pMoteurRendu, pJoueur, infos.niveau, &etatNiveau);
+
+		if (pMapNew == NULL)	//Si on a pas réussi (c'était le dernier niveau ou il y a eu un problème)
+		{
+			if(etatNiveau == CHARGEMENT_GAGNE)	//Si c'est parce qu'on a gagné
+			{
+				if(BMusique)
+				{
+					FMOD_System_GetChannel(pMoteurSon, M_JEU, &pChannelEnCours);	//On arrête la musique de jeu
+					FMOD_Channel_SetPaused(pChannelEnCours, true);
+
+					FMOD_System_PlaySound(pMoteurSon, M_GAGNE, pSons->music[M_GAGNE], true, NULL);	//On lance celle de fin
+					FMOD_System_GetChannel(pMoteurSon, M_GAGNE, &pChannelEnCours);
+					FMOD_Channel_SetVolume(pChannelEnCours, Volume/100.0);
+					FMOD_Channel_SetPaused(pChannelEnCours, false);
+				}
+
+				Gagne(pMoteurRendu, images, *ppMap, polices);	//On affiche l'écran de fin quand on a gagné
+
+				*pControl = JEU_FIN;		//On sort de la boucle principale
+			}
+			else if(etatNiveau == CHARGEMENT_FICHIER_CORROMPU || etatNiveau == CHARGEMENT_ERREUR) //Si c'est une erreur de chargement
+			{
+				*pControl = JEU_FIN_ERREUR_CHARGEMENT;
+			}
+		}
+		else	//On a chargé le niveau suivant
+		{
+			/* On ajoute le niveau précédent et son score à la liste */
+			sprintf(chaine, "%d:%ld;", infos.niveau-1, infos.score);	
+			strcat(pJoueur->autre, chaine);
+
+			DestructionMap(*ppMap);	//On libère la mémoire prise par l'ancienne structure Map
+			*ppMap = pMapNew;	//On copie l'adresse de la nouvelle Map dans l'autre pointeur
+
+			infos.compteurTemps = 0;	//On remet le compteur de temps à 0
+			infos.score = 1000;	//On remet le score à 1000
+
+			InitialisationPositions(images, pJoueur, infos.niveau);	//On charge les positions
+
+			*pEtat = RIEN;	//On réinitialise la valeur 'etat' pour que le nouveau niveau ne se termine pas instantanément
+
+			/* On désactive tous les bonus, équivalent à "infos.bonus = infos.bonus & AUCUN_BONUS". On fait un ET bit à bit avec AUCUN_BONUS = 00000000 */
+			infos.bonus &= AUCUN_BONUS;
 		}
 	}
 
 	return 0;
+}
+
+void TraitementBonus(FMOD_SYSTEM *pMoteurSon, Sons *pSons)
+{
+	FMOD_CHANNEL *pChannelEnCours=NULL;
+	int enLecture=false;
+
+	FMOD_System_GetChannel(pMoteurSon, S_BONUS+10, &pChannelEnCours);
+	FMOD_Channel_IsPlaying(pChannelEnCours, &enLecture);
+
+	if((infos.bonus & (BONUS_VIE|BONUS_SCORE_FORT|BONUS_SCORE_FAIBLE)) && !enLecture)
+	{
+		FMOD_System_PlaySound(pMoteurSon, S_BONUS+10, pSons->bruits[S_BONUS], false, NULL);
+	}
+
+	if((infos.bonus & BONUS_VIE) && infos.vies < infos.viesInitiales)
+	{
+		infos.vies++;
+		infos.bonus &= ~BONUS_VIE;
+	}
+	else if (infos.bonus & BONUS_VIE)
+	{
+		infos.score += 50;
+		infos.bonus &= ~BONUS_VIE;
+	}
+
+	if (infos.bonus & BONUS_SCORE_FAIBLE)
+	{
+		infos.score += 100;
+		infos.bonus &= ~BONUS_SCORE_FAIBLE;
+	}
+
+	if (infos.bonus & BONUS_SCORE_FORT)
+	{
+		infos.score += 220;
+		infos.bonus &= ~BONUS_SCORE_FORT;
+	}
+}
+
+void Chrono()
+{
+	static unsigned int tempsChrono=0, tempsAncienChrono=0;
+	static int difference=0;
+
+	tempsChrono = SDL_GetTicks();
+
+	difference = tempsChrono - tempsAncienChrono;
+
+	if(difference >= 1000)
+	{
+		infos.compteurTemps++;
+		tempsAncienChrono = tempsChrono;
+	}
+	else if(difference < 0)
+	{
+		tempsAncienChrono = 0;
+	}
 }
 
 void CollisionDetect(Sprite images[], int indiceImage, Map *pMap, Collision *pCollision)
@@ -852,15 +914,14 @@ void CollisionDetect(Sprite images[], int indiceImage, Map *pMap, Collision *pCo
 	pCollision->etatColl |= CollisionDecor(images, indiceImage, pMap);
 }
 
-int Affichage(SDL_Renderer *pMoteurRendu, Sprite images[], TTF_Font *polices[], unsigned char descente[], Map* pMap, Animation anim[], int *ajoutAnim)
+int Affichage(SDL_Renderer *pMoteurRendu, Sprite images[], TTF_Font *polices[], unsigned char descente[], Map* pMap, Animation anim[], unsigned char *ajoutAnim)
 {
 	SDL_Rect posFond;
 
-	posFond.h = Hauteur;
-	posFond.w = Largeur;
+	posFond.h = (int)Hauteur;
+	posFond.w = (int)Largeur;
 	posFond.x = 0;
 	posFond.y = 0;
-
 
 	SDL_SetRenderDrawColor(pMoteurRendu, 0, 0, 0, SDL_ALPHA_OPAQUE);
 	SDL_RenderClear(pMoteurRendu);      //On efface la fenêtre
@@ -1281,7 +1342,7 @@ int AffichageBonus(SDL_Renderer *pMoteurRendu, Map *pMap, Sprite images[])
 	return 0;
 }
 
-int AffichageImages(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[], unsigned char descente[], int *pAjoutAnim)
+int AffichageImages(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[], unsigned char descente[], unsigned char *pAjoutAnim)
 {
 	static unsigned int angleVortex=360;
 	int i=0;
@@ -1347,7 +1408,6 @@ int AffichageTextes(SDL_Renderer *pMoteurRendu, TTF_Font *polices[], SDL_Texture
 	SDL_Surface *pSurfTemps=NULL, *pSurfScore=NULL;
 	SDL_Texture *pTextureTemps=NULL, *pTextureScore=NULL;
 
-
 	posFond.x = posFond.y=0;
 	posTemps.x = posScore.x = Arrondir(0.008*Largeur);
 	posTemps.y=0;
@@ -1356,14 +1416,13 @@ int AffichageTextes(SDL_Renderer *pMoteurRendu, TTF_Font *polices[], SDL_Texture
 	sprintf(chaineTemps, "%d", infos.compteurTemps);
 	sprintf(chaineScore, "%ld", infos.score);
 
-
-	pSurfTemps = TTF_RenderText_Solid(polices[ARIAL], chaineTemps, blancOpaque);
-	TTF_SizeText(polices[ARIAL], chaineTemps, &posTemps.w, &posTemps.h);
+	pSurfTemps = TTF_RenderText_Solid(polices[POLICE_ARIAL], chaineTemps, blancOpaque);
+	TTF_SizeText(polices[POLICE_ARIAL], chaineTemps, &posTemps.w, &posTemps.h);
 	posTemps.w = Arrondir(((double)posTemps.w/1280.0) * Largeur);
 	posTemps.h = Arrondir(((double)posTemps.h/1280.0) * Largeur);
 
-	pSurfScore = TTF_RenderText_Solid(polices[ARIAL], chaineScore, blancOpaque);
-	TTF_SizeText(polices[ARIAL], chaineScore, &posScore.w, &posScore.h);
+	pSurfScore = TTF_RenderText_Solid(polices[POLICE_ARIAL], chaineScore, blancOpaque);
+	TTF_SizeText(polices[POLICE_ARIAL], chaineScore, &posScore.w, &posScore.h);
 	posScore.w = Arrondir(((double)posScore.w/1280.0) * Largeur);
 	posScore.h = Arrondir(((double)posScore.h/1280.0) * Largeur);
 
@@ -1434,11 +1493,9 @@ int InitialisationPositions(Sprite images[], Joueur *pJoueur, int level)
 			}
 		}
 
-		i=0;
 
-		do
+		for(i=0; i<5; i++)
 		{
-
 		fgets(ligne, 20, pFichierNiveau);
 
 		nb = strtod(ligne, NULL);
@@ -1464,21 +1521,12 @@ int InitialisationPositions(Sprite images[], Joueur *pJoueur, int level)
 		}
 
 		images[MISSILE].position[i].y = Arrondir(nb*Hauteur);
-
-		i++;
-
-		if(i==5)
-		{
-			break;
 		}
-
-		}while(1);
 
 		fgets(ligne, 20, pFichierNiveau);
 
-		do
+		for(i=5; i<10; i++)
 		{
-
 		fgets(ligne, 20, pFichierNiveau);
 
 		nb = strtod(ligne, NULL);
@@ -1504,15 +1552,7 @@ int InitialisationPositions(Sprite images[], Joueur *pJoueur, int level)
 		}
 
 		images[MISSILE].position[i].y = Arrondir(nb*Hauteur);
-
-		i++;
-
-		if(i==10)
-		{
-			break;
 		}
-
-		}while(1);
 
 			if(fgets(ligne, 20, pFichierNiveau), strcmp(ligne, "#vortex\n") != 0)
 			{
@@ -1570,7 +1610,6 @@ int InitialisationPositions(Sprite images[], Joueur *pJoueur, int level)
 			}
 
 			images[VORTEX_VERT].position[0].y = Arrondir(nb*Hauteur);
-
 
 		if (fgets(ligne, 20, pFichierNiveau), strcmp(ligne, "#boules\n") != 0)
 		{
@@ -1641,7 +1680,6 @@ int InitialisationPositions(Sprite images[], Joueur *pJoueur, int level)
 
 		images[BOULE_VERTE].position[0].x = Arrondir(nb*Largeur);
 
-
 		fgets(ligne, 20, pFichierNiveau);
 
 		nb = strtod(ligne, NULL);
@@ -1708,7 +1746,6 @@ int InitialisationPositions(Sprite images[], Joueur *pJoueur, int level)
 		images[MISSILE].position[i].w = TailleMissileW;
 	}
 
-
 	images[VORTEX_BLEU].position[0].w = images[VORTEX_BLEU].position[0].h = images[VORTEX_VERT].position[0].w = images[VORTEX_VERT].position[0].h = Arrondir(TailleBloc*1.7);
 	images[GEMMES].position[0].w = images[GEMMES].position[0].h = Arrondir((double)TailleBloc - ((double)TailleBloc * 0.3));
 	images[CURSEUR].position[0].w = Arrondir(0.02*Largeur);
@@ -1730,9 +1767,9 @@ int InitialisationPositions(Sprite images[], Joueur *pJoueur, int level)
 
 int SautBleue(SDL_Rect *pPosition, unsigned char *pSautEnCours)
 {
-	static int positionRelative, positionRelativeAncienne=0, positionFinale;
+	static int positionRelative=0, positionRelativeAncienne=0, positionFinale=0;
 	static int positionInitiale=0, temps=0;
-	double vitesse_initiale;
+	double vitesse_initiale=0.0;
 
 	if(infos.bonus & BONUS_SAUT_BLEUE_FORT)
 	{
@@ -1750,7 +1787,7 @@ int SautBleue(SDL_Rect *pPosition, unsigned char *pSautEnCours)
 	if(*pSautEnCours == false)
 	{
 		positionInitiale = pPosition->y;
-		temps = positionRelativeAncienne =0;
+		temps = positionRelativeAncienne = 0;
 		*pSautEnCours = true;
 	}
 
@@ -1888,7 +1925,6 @@ unsigned int CollisionImage (Sprite images[], int indiceImage, Collision *pColli
 	}
 	}
 
-
 	for(i=0; i < 5; i++)
 	{
 		if((images[indiceImage].position[0].y + images[indiceImage].position[0].h -1> images[MISSILE].position[i].y) && (images[indiceImage].position[0].y < images[MISSILE].position[i].y + images[MISSILE].position[i].h -1))
@@ -1935,7 +1971,6 @@ unsigned int CollisionImage (Sprite images[], int indiceImage, Collision *pColli
 	}
 	}
 
-
 	return COLL_NONE;
 }
 
@@ -1964,7 +1999,7 @@ unsigned int CollisionDecor (Sprite images[], int indiceImage, Map* pMap)
 	return COLL_NONE;
 }
 
-void CollisionBonus (Sprite images[], int indiceImage, Map* pMap)
+void DetectionBonus (Sprite images[], int indiceImage, Map* pMap)
 {
 	int i;
 
@@ -2224,7 +2259,9 @@ int Perdu(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[], Map* pM
 
 	ClavierSouris entrees;
 	SDL_Color color = {255, 255, 255, 255};
-	int rmask, gmask, bmask, amask, temps=0, tempsAncien=0, i=0, ajoutAnim=true;
+	int rmask, gmask, bmask, amask, differenceFPS=0, i=0;
+	unsigned char ajoutAnim=true;
+	unsigned int tempsFPS=0, tempsAncienFPS=0;
 
 	sprintf(information.chaines[0], "PERDU");
 	sprintf(information.chaines[1], "Niveau: %d", infos.niveau);
@@ -2238,7 +2275,7 @@ int Perdu(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[], Map* pM
 	bmask = 0x00ff0000;
 	amask = 0xff000000;
 
-	psFondPerdu = SDL_CreateRGBSurface(0 , Largeur, Hauteur, 32, rmask, gmask, bmask, amask);
+	psFondPerdu = SDL_CreateRGBSurface(0 , (int)Largeur, (int)Hauteur, 32, rmask, gmask, bmask, amask);
 	SDL_FillRect(psFondPerdu, NULL, SDL_MapRGBA(psFondPerdu->format, 200, 125, 75, 128));
 	pFondPerdu = SDL_CreateTextureFromSurface(pMoteurRendu, psFondPerdu);
 
@@ -2246,8 +2283,8 @@ int Perdu(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[], Map* pM
 
 	for (i=0; i<4; i++)
 	{
-		information.surface = TTF_RenderText_Blended(polices[SNICKY_GRAND], information.chaines[i], color);
-		TTF_SizeText(polices[SNICKY_GRAND], information.chaines[i], &information.positions[i].w, &information.positions[i].h);
+		information.surface = TTF_RenderText_Blended(polices[POLICE_SNICKY_GRAND], information.chaines[i], color);
+		TTF_SizeText(polices[POLICE_SNICKY_GRAND], information.chaines[i], &information.positions[i].w, &information.positions[i].h);
 		information.positions[i].w = Arrondir(((double)information.positions[i].w / 1280.0) * Largeur);
 		information.positions[i].h = Arrondir(((double)information.positions[i].h / 1280.0) * Largeur);
 
@@ -2259,31 +2296,33 @@ int Perdu(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[], Map* pM
 		SDL_FreeSurface(information.surface);
 	}
 
-
 	while(!entrees.clavier[ESPACE] && !entrees.clavier[ENTREE] && !entrees.fermeture)
 	{
 		GestionEvenements(&entrees);
-		temps = SDL_GetTicks();
 
-		if (temps - tempsAncien > T_FPS)
+		tempsFPS = SDL_GetTicks();
+
+		differenceFPS = tempsFPS - tempsAncienFPS;
+
+		if (differenceFPS > T_FPS)
 		{
 			PerduAffichage(pMoteurRendu, images, anim, pFondPerdu, pMap, &information, &ajoutAnim);
-			tempsAncien = temps;
+			tempsAncienFPS = tempsFPS;
 		}
 	}
 
 	return 0;
 }
 
-int PerduAffichage(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[], SDL_Texture *pFondPerdu, Map *pMap, Texte *pInformation, int *pAjoutAnim)
+int PerduAffichage(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[], SDL_Texture *pFondPerdu, Map *pMap, Texte *pInformation, unsigned char *pAjoutAnim)
 {
 	static SDL_Rect pos, posFond;
 	int i=0;
 
 	pos.h = pos.w = TailleBloc;
 
-	posFond.h = Hauteur;
-	posFond.w = Largeur;
+	posFond.h = (int)Hauteur;
+	posFond.w = (int)Largeur;
 	posFond.x = posFond.y = 0;
 
 	SDL_SetRenderDrawColor(pMoteurRendu, 65, 118, 150, 255); //Remplissage en bleu pour le fond
@@ -2357,7 +2396,8 @@ int Gagne(SDL_Renderer *pMoteurRendu, Sprite images[], Map *pMap, TTF_Font *poli
 
 	ClavierSouris entrees;
 	SDL_Color color = {255, 255, 255, 255};
-	int rmask, gmask, bmask, amask, temps=0, tempsAncien=0, i;
+	int rmask, gmask, bmask, amask, i=0, differenceFPS=0;
+	unsigned int tempsFPS=0, tempsAncienFPS=0;
 
 	sprintf(information.chaines[0], "GAGNÉ");
 	sprintf(information.chaines[1], "Niveau: %d", infos.niveau -1);
@@ -2372,7 +2412,7 @@ int Gagne(SDL_Renderer *pMoteurRendu, Sprite images[], Map *pMap, TTF_Font *poli
 	bmask = 0x00ff0000;
 	amask = 0xff000000;
 
-	pSurfFondGagne = SDL_CreateRGBSurface(0 , Largeur, Hauteur, 32, rmask, gmask, bmask, amask);
+	pSurfFondGagne = SDL_CreateRGBSurface(0 , (int)Largeur, (int)Hauteur, 32, rmask, gmask, bmask, amask);
 	SDL_FillRect(pSurfFondGagne, NULL, SDL_MapRGBA(pSurfFondGagne->format, 200, 125, 75, 128));
 	pTextureFondGagne = SDL_CreateTextureFromSurface(pMoteurRendu, pSurfFondGagne);
 
@@ -2380,8 +2420,8 @@ int Gagne(SDL_Renderer *pMoteurRendu, Sprite images[], Map *pMap, TTF_Font *poli
 
 	for (i=0; i<5; i++)
 	{
-		information.surface = TTF_RenderText_Blended(polices[SNICKY_GRAND], information.chaines[i], color);
-		TTF_SizeText(polices[SNICKY_GRAND], information.chaines[i], &information.positions[i].w, &information.positions[i].h);
+		information.surface = TTF_RenderText_Blended(polices[POLICE_SNICKY_GRAND], information.chaines[i], color);
+		TTF_SizeText(polices[POLICE_SNICKY_GRAND], information.chaines[i], &information.positions[i].w, &information.positions[i].h);
 		information.positions[i].w = Arrondir(((double)information.positions[i].w / 1280.0) * Largeur);
 		information.positions[i].h = Arrondir(((double)information.positions[i].h / 1280.0) * Largeur);
 
@@ -2396,12 +2436,15 @@ int Gagne(SDL_Renderer *pMoteurRendu, Sprite images[], Map *pMap, TTF_Font *poli
 	while(!entrees.clavier[ESPACE] && !entrees.clavier[ENTREE] && !entrees.fermeture)
 	{
 		GestionEvenements(&entrees);
-		temps = SDL_GetTicks();
 
-		if (temps - tempsAncien > T_FPS)
+		tempsFPS = SDL_GetTicks();
+
+		differenceFPS = tempsFPS - tempsAncienFPS;
+
+		if (differenceFPS > T_FPS)
 		{
 			GagneAffichage(pMoteurRendu, images, pTextureFondGagne, pMap, &information);
-			tempsAncien = temps;
+			tempsAncienFPS = tempsFPS;
 		}
 	}
 
@@ -2443,7 +2486,6 @@ int GagneAffichage(SDL_Renderer *pMoteurRendu, Sprite images[], SDL_Texture *pTe
 	}
 
 	SDL_RenderPresent(pMoteurRendu);         //Mise à jour de l'écran
-
 
 	return 0;
 }

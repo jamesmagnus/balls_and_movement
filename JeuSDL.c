@@ -65,7 +65,6 @@ int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur)
 
 	Initialisation(&pMoteurRendu, pFichierErreur, &pFenetre, pOptions);     //Initialisation des principaux éléments (SDL, fenêtre, moteur de rendu)
 
-
 	if(BMusique)	//S'il y a de la musique
 	{
 		FMOD_System_GetChannel(pMoteurSon, M_MENU, &channelEnCours);	//On met en pause la musique du menu
@@ -97,7 +96,6 @@ int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur)
 	SDL_RenderCopy(pMoteurRendu, pEcranChargement, NULL, NULL);
 	SDL_RenderPresent(pMoteurRendu);
 
-
 	SDL_EventState(SDL_TEXTEDITING, SDL_DISABLE);   //Désactivation des événements dont on a pas besoin.
 	SDL_EventState(SDL_TEXTINPUT, SDL_DISABLE);
 
@@ -108,20 +106,19 @@ int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur)
 	/* Traitement des éventuelles erreurs */
 	if(erreur == 1)
 	{
-		fprintf(pFichierErreur, "Erreur lors du chargement des images. Veuillez vérifier ressources\img\... \n");
+		fprintf(pFichierErreur, "Erreur lors du chargement des images. Veuillez vérifier ressources\\img\\... \n");
 		exit(EXIT_FAILURE);
 	}
 	else if (erreur == 2)
 	{
-		fprintf(pFichierErreur, "Erreur lors du chargement des polices. Veuillez vérifier ressources\fonts\... \n");
+		fprintf(pFichierErreur, "Erreur lors du chargement des polices. Veuillez vérifier ressources\\fonts\\... \n");
 		exit(EXIT_FAILURE);
 	}
 	else if (erreur == 3)
 	{
-		fprintf(pFichierErreur, "Erreur lors du chargement des animations. Veuillez vérifier ressources\anim\... \n");
+		fprintf(pFichierErreur, "Erreur lors du chargement des animations. Veuillez vérifier ressources\\anim\\... \n");
 		exit(EXIT_FAILURE);
 	}
-
 
 	if (BMusique)
 	{
@@ -161,7 +158,6 @@ int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur)
 	return 0;
 }
 
-
 void LibererMemoire(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[], TTF_Font *polices[], SDL_Window *pFenetre, Options *pOptions)
 {
 	int i=0, j=0;	//Compteurs
@@ -195,7 +191,7 @@ void LibererMemoire(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[
 	}
 
 	/* On ferme les polices */
-	for(i=0; i<=SNICKY_GRAND; i++)
+	for(i=0; i<=POLICE_SNICKY_GRAND; i++)
 	{
 		TTF_CloseFont(polices[i]);
 	}
@@ -207,7 +203,6 @@ void LibererMemoire(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[
 	IMG_Quit();
 	SDL_Quit();
 }
-
 
 int SauverMySql(Joueur *pJoueur)
 {
@@ -232,7 +227,6 @@ int SauverMySql(Joueur *pJoueur)
 	return 0;
 }
 
-
 void InitialiserInfos(Options *pOptions, Joueur *pJoueur)
 {
 	/* On définit les valeurs pour la partie qui va commencer à partir des options et des informations issues de la base MySql */
@@ -252,6 +246,5 @@ void InitialiserInfos(Options *pOptions, Joueur *pJoueur)
 	infos.compteurTemps = 0;
 	infos.bonus &= AUCUN_BONUS;
 }
-
 
 //Fin du fichier JeuSDL.c

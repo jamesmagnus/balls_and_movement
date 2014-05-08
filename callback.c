@@ -44,14 +44,12 @@ Coordo coordonnees =
 	false, true, false, false	//Sens: montée ou descente
 };
 
-
 int Redessiner(gpointer pData)
 {
 	gtk_widget_queue_draw(pData);	//On demande à redessiner le widget
 
 	return true;	//On retourne 'true' pour que la répétition de la fonction continue
 }
-
 
 void DestructionFenetre(GtkWidget *pWidget, gpointer pData)
 {
@@ -80,7 +78,6 @@ void DestructionFenetre(GtkWidget *pWidget, gpointer pData)
 	gtk_dialog_add_action_widget(GTK_DIALOG(pFenetreDemande), pBoutonOUI, GTK_RESPONSE_YES);
 
 	gtk_widget_show_all(pFenetreDemande);	//On affiche la fenêtre
-
 
 	/* On lance le dialogue et on regarde la réponse dans un switch */
 	switch(gtk_dialog_run(GTK_DIALOG(pFenetreDemande)))
@@ -168,7 +165,6 @@ void DemandeModeJeu(GtkWidget *pWidget, gpointer pData)
 	gtk_widget_show_all(pWindow);	//On affiche la fenêtre
 }
 
-
 void LancerJeuModeCampagne(GtkWidget *pWidget, gpointer pData)
 {
 	Joueur *pJoueur = (Joueur *)g_slist_nth_data((GSList*)pData, 6);	//On récupère le pointeur vers la structure Joueur dans la liste chaînée
@@ -184,7 +180,6 @@ void LancerJeuModeCampagne(GtkWidget *pWidget, gpointer pData)
 	LancerJeu(pMoteurSon, pSons, pJoueur);
 	gtk_widget_show_all(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On affiche à nouveau la fenêtre du menu
 }
-
 
 void LancerJeuModePerso(GtkWidget *pWidget, gpointer pData)
 {
@@ -202,7 +197,6 @@ void LancerJeuModePerso(GtkWidget *pWidget, gpointer pData)
 	gtk_widget_show_all(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On affiche à nouveau la fenêtre du menu
 }
 
-
 void LancerEditeur(GtkWidget *pWidget, gpointer pData)
 {
 	Joueur *pJoueur = (Joueur *)g_slist_nth_data((GSList*)pData, 6);	//On récupère le pointeur vers la structure Joueur dans la liste chaînée
@@ -216,7 +210,6 @@ void LancerEditeur(GtkWidget *pWidget, gpointer pData)
 	LancerJeu(pMoteurSon, pSons, pJoueur);
 	gtk_widget_show_all(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On affiche à nouveau la fenêtre du menu
 }
-
 
 void LancementCredits(GtkWidget *pWidget, gpointer pData)
 {
@@ -281,7 +274,6 @@ void LancementCredits(GtkWidget *pWidget, gpointer pData)
 
 	gtk_widget_show_all(pWindow);
 }
-
 
 void LancementOptions(GtkWidget *pWidget, gpointer pData)
 {
@@ -364,7 +356,6 @@ void LancementOptions(GtkWidget *pWidget, gpointer pData)
 	gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(pListeResolution), "1920 x 1200");
 	/* Lorsque l'on change la valeur de la liste la fonction est appelée pour mettre à jour la structure Options */
 	g_signal_connect(pListeResolution, "changed", G_CALLBACK(ModifierOptionsListe), pOptions);
-
 
 	/* On met la liste sur la résolution actuelle*/
 	switch(pOptions->largeur)
@@ -459,7 +450,6 @@ void LancementOptions(GtkWidget *pWidget, gpointer pData)
 	gtk_widget_show_all(pWindow);
 }
 
-
 void Peindre(GtkWidget *pWidget, cairo_t *cr, gpointer pData)
 {
 	/* Cette fonction permet de "peindre" les images de l'animation des boules dans le menu, 'cr' est le contexte cairo géré automatiquement par gtk */
@@ -472,7 +462,6 @@ void Peindre(GtkWidget *pWidget, cairo_t *cr, gpointer pData)
 	gdk_cairo_set_source_pixbuf(cr, ((GdkImages*)pData)->img[2], coordonnees.x3, coordonnees.y3);
 	cairo_paint(cr);
 }
-
 
 void PeindreV1(GtkWidget *pWidget, cairo_t *cr, gpointer pData)
 {
@@ -490,7 +479,6 @@ void PeindreV1(GtkWidget *pWidget, cairo_t *cr, gpointer pData)
 	cairo_paint(cr);
 }
 
-
 void PeindreV2(GtkWidget *pWidget, cairo_t *cr, gpointer pData)
 {
 	/* Cette fonction "peint" le missile de droite */
@@ -506,7 +494,6 @@ void PeindreV2(GtkWidget *pWidget, cairo_t *cr, gpointer pData)
 	gdk_cairo_set_source_pixbuf(cr, ((GdkImages*)pData)->img[3], coordonnees.x4, coordonnees.y4);
 	cairo_paint(cr);
 }
-
 
 int Avancer()
 {
@@ -621,7 +608,6 @@ int Avancer()
 	return true;	//On retourne 'true' pour que la répétition de la fonction continue
 }
 
-
 void FermerCredit(GtkWidget *pWidget, GdkEvent *event, gpointer pData)
 {
 	FMOD_CHANNEL *channelEnCours;
@@ -639,7 +625,6 @@ void FermerCredit(GtkWidget *pWidget, GdkEvent *event, gpointer pData)
 	gtk_widget_show_all(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));
 }
 
-
 void FermerFenetre(GtkWidget *pWidget, gpointer pData)
 {
 	/* Cette fonction permet de fermer la fenêtre reçue en paramètre */
@@ -653,7 +638,6 @@ void FermerFenetre(GtkWidget *pWidget, gpointer pData)
 		gtk_widget_destroy(gtk_widget_get_toplevel(pWidget));
 	}
 }
-
 
 void SauverOptions(GtkWidget *pWidget, gpointer pData)
 {
@@ -682,7 +666,7 @@ void SauverOptions(GtkWidget *pWidget, gpointer pData)
 /* On réaffecte les variables globales avec les nouvelles options que l'on vient d'enregistrer pour qu'elles prennent effet sans avoir besoin de redémarrer */
 	Hauteur = pOptions->hauteur;
 	Largeur = pOptions->largeur;
-	TailleBloc = ceil(Largeur/40.0);
+	TailleBloc = Arrondir(Largeur/40.0);
 	TailleBoule = Arrondir(Largeur/45.0);
 	TailleMissileW = Arrondir(Largeur/30.0);
 	TailleMissileH = Arrondir(Hauteur/5.5);
@@ -693,12 +677,10 @@ void SauverOptions(GtkWidget *pWidget, gpointer pData)
 	FermerFenetre(pWidget, NULL);	//On ferme la fenêtre
 }
 
-
 void AfficherMenu(GtkWidget *pWidget, gpointer pData)
 {
 	gtk_widget_show_all(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//Permet d'afficher le fenêtre du menu
 }
-
 
 void ModifierOptionsToggleButton1(GtkToggleButton *pToggleButton, gpointer pData)
 {
@@ -709,7 +691,6 @@ void ModifierOptionsToggleButton1(GtkToggleButton *pToggleButton, gpointer pData
 	pOptions->musique = etat;
 }
 
-
 void ModifierOptionsToggleButton2(GtkToggleButton *pToggleButton, gpointer pData)
 {
 	/* On met à jour la structure Options avec l'état du bouton */
@@ -719,7 +700,6 @@ void ModifierOptionsToggleButton2(GtkToggleButton *pToggleButton, gpointer pData
 	pOptions->sons = etat;
 }
 
-
 void ModifierOptionsToggleButton3(GtkToggleButton *pToggleButton, gpointer pData)
 {
 	/* On met à jour la structure Options avec l'état du bouton */
@@ -728,7 +708,6 @@ void ModifierOptionsToggleButton3(GtkToggleButton *pToggleButton, gpointer pData
 
 	pOptions->fullScreen = etat;
 }
-
 
 void ModifierOptionsListe(GtkComboBox *pComboBox, gpointer pData)
 {
@@ -769,7 +748,6 @@ void ModifierOptionsListe(GtkComboBox *pComboBox, gpointer pData)
 		break;
 	}
 }
-
 
 gboolean ModifierOptionsRange1(GtkRange *range, GtkScrollType scroll, double valeur, gpointer pData)
 {
@@ -901,7 +879,6 @@ void Connexion(GtkWidget *pWidget, gpointer pData)
 	/* On affiche la fenêtre */
 	gtk_widget_show_all(pWindow);
 }
-
 
 void ConnexionMySql(GtkWidget *pWidget, gpointer pData)
 {

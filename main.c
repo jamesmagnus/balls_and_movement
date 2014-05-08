@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 	/* Affectation des variables globales */
 	Hauteur = pOptions->hauteur;
 	Largeur = pOptions->largeur;
-	TailleBloc = ceil(Largeur/40.0);
+	TailleBloc = Arrondir(Largeur/40.0);
 	TailleBoule = Arrondir(Largeur/45.0);
 	TailleMissileW = Arrondir(Largeur/30.0);
 	TailleMissileH = Arrondir(Hauteur/5.5);
@@ -134,7 +134,6 @@ int main(int argc, char *argv[])
 	pListeElements = g_slist_append(pListeElements, pOptions); //5
 	pListeElements = g_slist_append(pListeElements, &joueur); //6
 
-
 	/*Affichage de la fenêtre*/
 	gtk_widget_show_all(pWindow);
 
@@ -168,7 +167,6 @@ void CreerBoutons( GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWi
 
 	g_signal_connect(G_OBJECT(*pBoutonConnexion), "clicked", G_CALLBACK(Connexion), pListeElements); // On ouvre la fenêtre de connexion au clic
 
-
 	/*						   */
 	/* On crée le bouton JOUER */
 	*pBoutonJouer = gtk_button_new();
@@ -192,7 +190,6 @@ void CreerBoutons( GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWi
 
 	g_list_append((GList*)pListeElements, GTK_BUTTON(*pBoutonJouer)); //1
 
-
 	/*						   */
 	/* On crée le bouton EDITEUR */
 	*pBoutonEditeur = gtk_button_new();
@@ -215,7 +212,6 @@ void CreerBoutons( GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWi
 
 	g_list_append((GList*)pListeElements, GTK_BUTTON(*pBoutonEditeur)); //2
 
-
 	/*						   */
 	/* On crée le bouton QUITTER */
 	*pBoutonQuitter = gtk_button_new();
@@ -232,7 +228,6 @@ void CreerBoutons( GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWi
 
 	g_signal_connect(G_OBJECT(*pBoutonQuitter), "clicked", G_CALLBACK(DestructionFenetre), NULL);	//On ferme quand on clique dessus
 
-
 	/*						   */
 	/* On crée le bouton CREDITS */
 	*pBoutonCredits = gtk_button_new();
@@ -248,7 +243,6 @@ void CreerBoutons( GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWi
 	gtk_widget_override_background_color(pBoutonCreditsLabel, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
 
 	g_signal_connect(G_OBJECT(*pBoutonCredits), "clicked", G_CALLBACK(LancementCredits), pListeElements);//On affiche les crédits au clic
-
 
 	/*						   */
 	/*On crée le bouton OPTIONS */
@@ -326,7 +320,6 @@ void CreerTitre(GtkWidget **pTitre)
 
 void CreerZonesDessin(GtkWidget **pZoneDessin, GtkWidget **pZoneDessinV1, GtkWidget **pZoneDessinV2, GdkImages *pix)
 {
-
 	/* On crée les différentes zone de dessin des animations */
 	*pZoneDessin = gtk_drawing_area_new();
 	gtk_widget_set_size_request(*pZoneDessin, 800, 160);
@@ -380,7 +373,6 @@ void LiberationMemoireMain(GSList *pListeElements, Options *pOptions, FILE *pFic
 
 	free(pOptions);
 	fclose(pFichierErreur);
-
 }
 
 //Fin du fichier main.c

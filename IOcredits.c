@@ -41,7 +41,6 @@ int ChargementCredits(char credit[][100])
 
 	do    //On lit le fichier ligne par ligne tant qu'on est pas à la fin du fichier
 	{
-
 		/* On lit les lignes caractère par caractère tant que la ligne n'est pas finie ou qu'on est pas à la fin du fichier */
 		do
 		{
@@ -53,7 +52,6 @@ int ChargementCredits(char credit[][100])
 		credit[i][j-1] = '\0';   //On applique le caractère de fin de chaine
 		j=0;	//On revient au premier caractère dans le tableau
 		i++;	//On passe à ligne suivante dans le tableau
-
 	}while(caractere != EOF);
 
 	fclose(pFichierCredits);        //On ferme le fichier

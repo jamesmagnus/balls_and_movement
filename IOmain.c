@@ -59,7 +59,6 @@ int InitialisationSon(FMOD_SYSTEM **ppMoteurSon, FILE *pFichierErreur, Sons *pSo
 	return 0;	//Tout c'est bien passé
 }
 
-
 int Initialisation(SDL_Renderer **ppMoteurRendu, FILE *pFichierErreur, SDL_Window **ppFenetre, Options *pOptions)
 {
 	/* Cette fonction initialise la SDL lors du lancement du jeu ou de l'éditeur */
@@ -115,7 +114,6 @@ int Initialisation(SDL_Renderer **ppMoteurRendu, FILE *pFichierErreur, SDL_Windo
 	return 0;
 }
 
-
 int Chargements(Sprite images[], SDL_Renderer *pMoteurRendu, TTF_Font *polices[], Animation anim[])
 {
 	if(ChargementTextures(pMoteurRendu ,images) == -1)	//On charge les images (boules, missile et vortexs)
@@ -136,7 +134,6 @@ int Chargements(Sprite images[], SDL_Renderer *pMoteurRendu, TTF_Font *polices[]
 	return 0;	//On renvoie 0 si tout c'est bien passé
 }
 
-
 int ChargementTextures(SDL_Renderer *pMoteurRendu, Sprite images[])
 {
 	/* Cette fonction charge les images et les convertie en textures */
@@ -155,7 +152,6 @@ int ChargementTextures(SDL_Renderer *pMoteurRendu, Sprite images[])
 	SDL_FillRect(pSurfFondTextes, NULL, SDL_MapRGBA(pSurfFondTextes->format, 0, 0, 0, 140));
 	images[FOND_TEXTES].pTextures[0] = SDL_CreateTextureFromSurface(pMoteurRendu, pSurfFondTextes);	//On convertie en texture
 	SDL_FreeSurface(pSurfFondTextes);	//On libère la surface
-
 
 	/* On charge toutes les images comme des surfaces et on vérifie que le chargement a réussi */
 	sImages[CURSEUR] = IMG_Load("ressources/img/curseur.png");
@@ -232,7 +228,6 @@ int ChargementTextures(SDL_Renderer *pMoteurRendu, Sprite images[])
 	return 0;
 }
 
-
 int GestionEvenements(ClavierSouris *entrees)
 {
 	/* Cette fonction très longue prend le prochain évènement en file d'attente et met à jour la structure qui représente l'état du clavier et de la souris */
@@ -279,10 +274,6 @@ int GestionEvenements(ClavierSouris *entrees)
 			entrees->clavier[HAUT] = true;
 			break;
 
-		case SDLK_z:
-			entrees->clavier[Z] = true;
-			break;
-
 		case SDLK_s:
 			entrees->clavier[S] = true;
 			break;
@@ -308,20 +299,8 @@ int GestionEvenements(ClavierSouris *entrees)
 			entrees->clavier[L] = true;
 			break;
 
-		case SDLK_k:
-			entrees->clavier[K] = true;
-			break;
-
-		case SDLK_i:
-			entrees->clavier[I] = true;
-			break;
-
-		case SDLK_m:
-			entrees->clavier[M] = true;
-			break;
-
 		case SDLK_p:
-			entrees->clavier[P] = true;
+			entrees->clavier[POLICE_ARIAL] = true;
 			break;
 
 		case SDLK_F5:
@@ -344,10 +323,6 @@ int GestionEvenements(ClavierSouris *entrees)
 		case SDLK_RETURN:
 		case SDLK_KP_ENTER:
 			entrees->clavier[ENTREE] = false;
-			break;
-
-		case SDLK_z:
-			entrees->clavier[Z] = false;
 			break;
 
 		case SDLK_s:
@@ -390,20 +365,8 @@ int GestionEvenements(ClavierSouris *entrees)
 			entrees->clavier[L] = false;
 			break;
 
-		case SDLK_k:
-			entrees->clavier[K] = false;
-			break;
-
-		case SDLK_i:
-			entrees->clavier[I] = false;
-			break;
-
-		case SDLK_m:
-			entrees->clavier[M] = false;
-			break;
-
 		case SDLK_p:
-			entrees->clavier[P] = false;
+			entrees->clavier[POLICE_ARIAL] = false;
 			break;
 
 		case SDLK_F5:
@@ -473,56 +436,54 @@ int GestionEvenements(ClavierSouris *entrees)
 	return 0;
 }
 
-
 int ChargementPolices(TTF_Font *polices[])
 {
 	/* On charge les polices dont on aura besoin en différentes tailles et on vérifie que ça a marché */
 
-	polices[ARIAL] = TTF_OpenFont("ressources/fonts/ARIALUNI.ttf", 25);
+	polices[POLICE_ARIAL] = TTF_OpenFont("ressources/fonts/ARIALUNI.ttf", 25);
 
-	if(polices[ARIAL] == NULL)
+	if(polices[POLICE_ARIAL] == NULL)
 	{
 		return -1;
 	}
 
-	polices[ARIAL_MOYEN] = TTF_OpenFont("ressources/fonts/ARIALUNI.ttf", 50);
+	polices[POLICE_ARIAL_MOYEN] = TTF_OpenFont("ressources/fonts/ARIALUNI.ttf", 50);
 
-	if(polices[ARIAL_MOYEN] == NULL)
+	if(polices[POLICE_ARIAL_MOYEN] == NULL)
 	{
 		return -1;
 	}
 
-	polices[ARIAL_GRAND] = TTF_OpenFont("ressources/fonts/ARIALUNI.ttf", 80);
+	polices[POLICE_ARIAL_GRAND] = TTF_OpenFont("ressources/fonts/ARIALUNI.ttf", 80);
 
-	if(polices[ARIAL_GRAND] == NULL)
+	if(polices[POLICE_ARIAL_GRAND] == NULL)
 	{
 		return -1;
 	}
 
-	polices[SNICKY] = TTF_OpenFont("ressources/fonts/Snickles.ttf", 20);
+	polices[POLICE_SNICKY] = TTF_OpenFont("ressources/fonts/Snickles.ttf", 20);
 
-	if(polices[SNICKY] == NULL)
+	if(polices[POLICE_SNICKY] == NULL)
 	{
 		return -1;
 	}
 
-	polices[SNICKY_MOYEN] = TTF_OpenFont("ressources/fonts/Snickles.ttf", 40);
+	polices[POLICE_SNICKY_MOYEN] = TTF_OpenFont("ressources/fonts/Snickles.ttf", 40);
 
-	if(polices[SNICKY_MOYEN] == NULL)
+	if(polices[POLICE_SNICKY_MOYEN] == NULL)
 	{
 		return -1;
 	}
 
-	polices[SNICKY_GRAND] = TTF_OpenFont("ressources/fonts/Snickles.ttf", 60);
+	polices[POLICE_SNICKY_GRAND] = TTF_OpenFont("ressources/fonts/Snickles.ttf", 60);
 
-	if(polices[SNICKY_GRAND] == NULL)
+	if(polices[POLICE_SNICKY_GRAND] == NULL)
 	{
 		return -1;
 	}
 
 	return 0;
 }
-
 
 int ChargementMusic (Sons *pSons, FMOD_SYSTEM *pMoteurSon)
 {
@@ -591,7 +552,6 @@ int ChargementMusic (Sons *pSons, FMOD_SYSTEM *pMoteurSon)
 	return 0;
 }
 
-
 int DestructionSurfaces(SDL_Surface *sImages[])
 {
 	int i=0;
@@ -605,8 +565,7 @@ int DestructionSurfaces(SDL_Surface *sImages[])
 	return 0;
 }
 
-
-Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level)
+Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level, int *pEtatNiveau)
 {
 	int i=0, j=0, k=0;	//Compteur
 	SDL_Surface *pSurface = NULL, *pSurfaceFond = NULL;	//Deux pointeurs sur une surface
@@ -617,6 +576,7 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level)
 	pFichierErreur = fopen("ressources/ErreursLog.txt", "a");	//On ouvre le fichier d'erreur pour écrire d'éventuelles erreurs
 	if(pFichierErreur == NULL)
 	{
+		*pEtatNiveau = CHARGEMENT_ERREUR;	//On place un code d'erreur dans la variable
 		return NULL;	//On arrête si on a pas réussi à ouvrir le fichier
 	}
 
@@ -629,13 +589,15 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level)
 	if(pSurface == NULL)
 	{
 		fprintf(pFichierErreur, "Erreur lors du chargement du fichier tile_sol.png\n");
-		return NULL;
+		*pEtatNiveau = CHARGEMENT_ERREUR;	//On place un code d'erreur dans la variable
+		return NULL;	//On arrête si on a pas réussi à ouvrir le fichier
 	}
 
 	if(pSurfaceFond == NULL)
 	{
 		fprintf(pFichierErreur, "Erreur lors du chargement du fichier %s\n", ligne);
-		return NULL;
+		*pEtatNiveau = CHARGEMENT_ERREUR;	//On place un code d'erreur dans la variable
+		return NULL;	//On arrête si on a pas réussi à ouvrir le fichier
 	}
 
 	/* On alloue la mémoire nécessaire pour une structure Map */
@@ -644,7 +606,8 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level)
 	if(pMap == NULL)	//On vérifie l'allocation
 	{
 		fprintf(pFichierErreur, "Erreur lors de l'allocation dynamique de la mémoire\n");
-		return NULL;
+		*pEtatNiveau = CHARGEMENT_ERREUR;	//On place un code d'erreur dans la variable
+		return NULL;	//On arrête si on a pas réussi à allouer la mémoire
 	}
 
 	/* On convertie les surfaces en textures et on place les adresses dans les pointeurs fraîchements alloués de la structure Map */
@@ -663,7 +626,8 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level)
 	if(pMap->props == NULL)	//On vérifie
 	{
 		fprintf(pFichierErreur, "Erreur lors de l'allocation dynamique de la mémoire\n");
-		return NULL;
+		*pEtatNiveau = CHARGEMENT_ERREUR;	//On place un code d'erreur dans la variable
+		return NULL;	//On arrête si on a pas réussi à allouer la mémoire
 	}
 
 	/* On parcourt un par un tous les blocs de la texture et on définie les masques pour afficher chaque bloc (taille d'un bloc et position sur la texture) */
@@ -679,12 +643,20 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level)
 		}
 	}
 
-	/* Enfin ouvre le fichier de niveau selon le mode de jeu */
+	/* Enfin ouvre le fichier de niveau selon le mode jeu ou éditeur */
 	/* On ouvre un fichier correct pour le mode éditeur car il faut les tailles de map par défaut */
 	if(pJoueur->mode == MODE_CAMPAGNE || pJoueur->mode == MODE_EDITEUR)
 	{
-		VerificationMD5("3CB9ED8BCD9B987BBE894CAE5B9D8FAA", "ressources/level.lvl");
-		pFichierNiveau = fopen("ressources/level.lvl", "r");
+		if(VerificationMD5("3CB9ED8BCD9B987BBE894CAE5B9D8FAA", "ressources/level.lvl"))	//On vérifie l'empreinte md5 du fichier
+		{
+			pFichierNiveau = fopen("ressources/level.lvl", "r");
+		}
+		else
+		{
+			*pEtatNiveau = CHARGEMENT_FICHIER_CORROMPU;	//On place un code d'erreur dans la variable
+			return NULL;	//On arrête car le fichier fourni n'est pas le bon
+		}
+		
 	}
 	else if (pJoueur->mode == MODE_PERSO)
 	{
@@ -694,7 +666,8 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level)
 	if (pFichierNiveau == NULL)	//On vérifie
 	{
 		fprintf(pFichierErreur, "Erreur: le fichier level.lvl ou levelUser.lvl est introuvable\n");
-		return NULL;
+		*pEtatNiveau = CHARGEMENT_ERREUR;	//On place un code d'erreur dans la variable
+		return NULL;	//On arrête si on a pas réussi à ouvrir le fichier
 	}
 
 	/* On parcourt autant de niveau qu'il faut pour atteindre celui qu'il faut charger */
@@ -720,10 +693,10 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level)
 		fgets(ligne, 50, pFichierNiveau);
 		pMap->nbtiles_largeur_monde = strtol(ligne, NULL, 10);
 	}
-	else
+	else	//Fin du fichier, plus de niveau, on a gagné
 	{
-		fprintf(pFichierErreur, "Plus de niveau !\n");	//Fin du fichier, plus de niveau, on a gagné
-		return NULL;
+		*pEtatNiveau = CHARGEMENT_GAGNE;	//On place un code d'erreur dans la variable
+		return NULL;	//On retourne NULL comme il n'y a plus rien à charger
 	}
 
 	/* On alloue de la mémoire pour chaque colonne la map des blocs et chaque colonne de celle des bonus */
@@ -733,7 +706,8 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level)
 	if(pMap->plan == NULL || pMap->planObjets == NULL)	//On vérifie
 	{
 		fprintf(pFichierErreur, "Erreur d'allocation dynamique de la mémoire\n");
-		return NULL;
+		*pEtatNiveau = CHARGEMENT_ERREUR;	//On place un code d'erreur dans la variable
+		return NULL;	//On arrête si on a pas réussi à allouer la mémoire
 	}
 
 	/* Ensuite dans chacune de ces colonnes on va allouer de la mémoire pour chaque ligne */
@@ -745,7 +719,8 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level)
 		if(pMap->plan[i] == NULL || pMap->planObjets[i] == NULL)	//On vérifie à chaque fois
 		{
 			fprintf(pFichierErreur, "Erreur d'allocation dynamique de la mémoire\n");
-			return NULL;
+			*pEtatNiveau = CHARGEMENT_ERREUR;	//On place un code d'erreur dans la variable
+			return NULL;	//On arrête si on a pas réussi à allouer la mémoire
 		}
 	}
 
@@ -770,7 +745,8 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level)
 				else	//Si on a pas réussi à lire quelque chose c'est que le fichier est corrompu, il n'y a pas assez de bloc
 				{
 					fprintf(pFichierErreur, "Erreur: level.lvl, fichier corrompu.\n");
-					return NULL;
+					*pEtatNiveau = CHARGEMENT_FICHIER_CORROMPU;	//On place un code d'erreur dans la variable
+					return NULL;	//On arrête car le fichier est corrompu
 				}
 			}
 		}
@@ -780,7 +756,8 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level)
 		if (strcmp(ligne, "#mapObjets\n") != 0)
 		{
 			fprintf(pFichierErreur, "Erreur: level.lvl, fichier corrompu.\n");
-			return NULL;
+			*pEtatNiveau = CHARGEMENT_FICHIER_CORROMPU;	//On place un code d'erreur dans la variable
+			return NULL;	//On arrête car le fichier est corrompu
 		}
 
 		/* On parcourt la map des bonus avec notre double boucle */
@@ -796,7 +773,8 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level)
 				else	//S'il manque des lignes le fichier est corrompu
 				{
 					fprintf(pFichierErreur, "Erreur: level.lvl, fichier corrompu.\n");
-					return NULL;
+					*pEtatNiveau = CHARGEMENT_FICHIER_CORROMPU;	//On place un code d'erreur dans la variable
+					return NULL;	//On arrête car le fichier est corrompu
 				}
 			}
 		}
@@ -822,7 +800,6 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level)
 	return pMap;	//On renvoie l'adresse de la structure Map que l'on a créée et chargée
 }
 
-
 int DestructionMap(Map *pMap)
 {
 	int i;	//Compteur
@@ -845,7 +822,6 @@ int DestructionMap(Map *pMap)
 
 	return 0;
 }
-
 
 void EntreesZero(ClavierSouris *pEntrees)
 {
@@ -870,7 +846,6 @@ void EntreesZero(ClavierSouris *pEntrees)
 
 	pEntrees->fermeture = false;	//Évènement de fermeture
 }
-
 
 int ChargementAnimations(SDL_Renderer *pMoteurRendu, Animation anim[])
 {
@@ -907,7 +882,6 @@ int ChargementAnimations(SDL_Renderer *pMoteurRendu, Animation anim[])
 	return 0;
 }
 
-
 int MessageInformations(const char messageInfos[], TTF_Font *polices[], SDL_Renderer *pMoteurRendu, ClavierSouris *pEntrees)
 {
 	/* Cette fonction permet d'afficher un message dans la fenêtre de la SDL, sur fond noir, il faut ensuite appuyer sur entrée ou sur echap pour effacer le message, on peut savoir si on a appuyé sur l'une ou sur l'autre touche */
@@ -918,8 +892,8 @@ int MessageInformations(const char messageInfos[], TTF_Font *polices[], SDL_Rend
 	sprintf(informations.chaines[0], messageInfos);	//On copie le message reçu en paramètre dans la première chaîne
 
 	/* On crée une surface à partir de cette chaîne et on enregistre la taille qu'elle va faire */
-	informations.surface = TTF_RenderText_Blended(polices[SNICKY_GRAND], informations.chaines[0], blancOpaque);
-	TTF_SizeText(polices[SNICKY_GRAND], informations.chaines[0], &informations.positions[0].w, &informations.positions[0].h);
+	informations.surface = TTF_RenderText_Blended(polices[POLICE_SNICKY_GRAND], informations.chaines[0], blancOpaque);
+	TTF_SizeText(polices[POLICE_SNICKY_GRAND], informations.chaines[0], &informations.positions[0].w, &informations.positions[0].h);
 
 	/* On convertie la surface en texture */
 	informations.pTextures[0] = SDL_CreateTextureFromSurface(pMoteurRendu, informations.surface);
@@ -927,20 +901,20 @@ int MessageInformations(const char messageInfos[], TTF_Font *polices[], SDL_Rend
 	SDL_FreeSurface(informations.surface);	//On libère la surface
 
 	/* On fait de même avec le message qui indique sur quelles touches il faut appuyer, et qui est toujours présent */
-	informations.surface = TTF_RenderText_Blended(polices[SNICKY_MOYEN], "Appuyez sur ENTREE ou sur ECHAP", blancOpaque);
-	TTF_SizeText(polices[SNICKY_MOYEN], "Appuyez sur ENTREE ou sur ECHAP", &informations.positions[1].w, &informations.positions[1].h);
+	informations.surface = TTF_RenderText_Blended(polices[POLICE_SNICKY_MOYEN], "Appuyez sur ENTREE ou sur ECHAP", blancOpaque);
+	TTF_SizeText(polices[POLICE_SNICKY_MOYEN], "Appuyez sur ENTREE ou sur ECHAP", &informations.positions[1].w, &informations.positions[1].h);
 
 	informations.pTextures[1] = SDL_CreateTextureFromSurface(pMoteurRendu, informations.surface);
 
 	SDL_FreeSurface(informations.surface);
 
 	/* On centre le message principal */
-	informations.positions[0].x = Largeur/2 - informations.positions[0].w/2;
-	informations.positions[0].y = Hauteur/2 - informations.positions[0].h/2;
+	informations.positions[0].x = Arrondir(Largeur/2.0 - informations.positions[0].w/2.0);
+	informations.positions[0].y = Arrondir(Hauteur/2.0 - informations.positions[0].h/2.0);
 
 	/* On centre le message secondaire sous le principal */
-	informations.positions[1].x = Largeur/2 - informations.positions[1].w/2;
-	informations.positions[1].y = Hauteur/2 - informations.positions[1].h/2 + informations.positions[0].h;
+	informations.positions[1].x = Arrondir(Largeur/2.0 - informations.positions[1].w/2.0);
+	informations.positions[1].y = Arrondir(Hauteur/2.0 - informations.positions[1].h/2.0 + informations.positions[0].h);
 
 	/* On affiche le message jusqu'à ce qu'il y ait appui sur une des deux touches */
 	while (!(pEntrees->clavier[ENTREE] || pEntrees->clavier[ECHAP]))
@@ -973,14 +947,14 @@ int MessageInformations(const char messageInfos[], TTF_Font *polices[], SDL_Rend
 	}
 }
 
-
 int VerificationMD5(char empreinte[], char nomFichier[])
 {
 /* Cette fonction permet de comparer l'empreinte md5 d'un fichier avec une connue pour vérifier qu'il n'a pas été corrompu par quelques personnes malveillantes */
 
 	FILE *pFichierATester = fopen(nomFichier, "rb");	//On ouvre le fichier en mode lecture binaire
 	md5_state_t etat;	//Structure pour le calcul md5
-	md5_byte_t md5Calcule[17]="", md5CalculeHEXA[33]="";	//Chaînes pour le calcul du md5 et pour la conversion en héxadécimal
+	md5_byte_t md5Calcule[17]="";
+	char md5CalculeHEXA[33]="";	//Chaînes pour le calcul du md5 et pour la conversion en héxadécimal
 	char *buffer= malloc(32768);	//On alloue un buffer de lecture de 32 768 octets (2^15)
 	int i=0;	//Compteur
 	size_t nbOctetsLus=0;	//Pour stocker le nombre d'octets lus à chaque tour de boucle ('size_t' est un typedef de 'unsigned int')
@@ -997,13 +971,10 @@ int VerificationMD5(char empreinte[], char nomFichier[])
 		nbOctetsLus = fread(buffer, 1, 32768, pFichierATester);	//On lit 1*32768 octets dans le fichier que l'on place dans le buffer
 		/* On ajoute le buffer au md5, on précise la taille des données pour le calcul (32 768 sauf au dernier tour de boucle) */
 		md5_append(&etat, buffer, nbOctetsLus);
-
 	}while(nbOctetsLus == 32768);	//Lorsqu'on a lu un nombre d'octet différent de 32 768 c'est que c'était la dernière partie du fichier
-
 
 	md5_finish(&etat, md5Calcule);	//On termine le calcul md5
 	md5Calcule[16] = '\0';	//On ajoute le caractère de fin de chaîne
-
 
 	while (md5Calcule[i] != '\0')	//Tant qu'on est pas arrivé au bout
 	{
@@ -1013,9 +984,9 @@ int VerificationMD5(char empreinte[], char nomFichier[])
 
 	if(strcmp(empreinte, md5CalculeHEXA) != 0)
 	{
-		return 1;	//On renvoie 1 si les deux empreintes ne sont pas identiques
+		return true;	//On renvoie 'true' si les deux empreintes ne sont pas identiques
 	}
 
-	return 0;
+	return false;
 }
 //Fin du fichier IOmain.c

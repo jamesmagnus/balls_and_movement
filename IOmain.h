@@ -73,7 +73,7 @@ typedef struct Animation		//Structure pour les images qui forment une animation
 typedef struct Collision		//Structure pour gérer les collisions
 {
 	unsigned int etatColl;
-	unsigned char numMissile;
+	char numMissile;
 } Collision;
 
 typedef struct Joueur	//Structure avec les informations relatives au joueur
@@ -87,17 +87,15 @@ typedef struct Joueur	//Structure avec les informations relatives au joueur
 	char autre[9000];
 } Joueur;
 
-
 typedef struct InfoDeJeu	//Structure avec les infos de la partie
 {
 	char vies;
 	char viesInitiales;
 	long score;
 	int niveau;
-	int compteurTemps;
+	unsigned int compteurTemps;
 	unsigned int bonus;
 } InfoDeJeu;
-
 
 /* Prototypes des fonctions */
 int Initialisation(SDL_Renderer **ppMoteurRendu, FILE *pFichierErreur, SDL_Window **ppFenetre, Options *pOptions);
@@ -108,7 +106,7 @@ int DestructionSurfaces(SDL_Surface *sImages[]);
 int ChargementPolices(TTF_Font *polices[]);
 int ChargementMusic (Sons *pSons, FMOD_SYSTEM *pMoteurSon);
 int InitialisationSon(FMOD_SYSTEM **ppMoteurSon, FILE *pFichierErreur, Sons *pSons);
-Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level);
+Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level, int *pEtatNiveau);
 int DestructionMap(Map *pMap);
 void EntreesZero(ClavierSouris *pEntrees);
 int ChargementAnimations(SDL_Renderer *pMoteurRendu, Animation anim[]);

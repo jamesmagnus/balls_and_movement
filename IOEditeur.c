@@ -92,7 +92,6 @@ int SauvegardeNiveau(Map* pMap, Sprite images[])
 		fputs(chaine, pFichierNiveau);
 	}
 
-
 	fputs("#missileH\n", pFichierNiveau);	//On écrit
 
 	/* On écrit les coordonnées des missile H en pourcentage de la largeur */

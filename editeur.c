@@ -32,12 +32,11 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 extern int TailleBloc, TailleBoule, TailleMissileH, TailleMissileW, BMusique, BSons;		//Lien vers les variables globales déclarées dans main.c
 extern double Volume, Hauteur, Largeur;
 
-
 int Editeur (SDL_Renderer *pMoteurRendu, Sprite images[], FMOD_SYSTEM *pMoteurSon, Sons *pSons, TTF_Font *polices[], Joueur *pJoueur)
 {
 	Map *pMap = NULL;	//Pointeur sur une structure Map
-	int continuer=true, etat=0, objetPris=AUCUN_BONUS;
-	unsigned int temps=0, tempsAncien=0;	//Les temps sont forcément positifs
+	int continuer=true, etat=0, objetPris=AUCUN_BONUS, differenceFPS=0;
+	unsigned int tempsFPS=0, tempsAncienFPS=0;	//Les temps sont forcément positifs
 	ClavierSouris entrees;	//Structure pour gérer les entrées clavier et souris
 	FMOD_CHANNEL *pChannelEnCours=NULL;
 	SDL_Event evenementPoubelle;	//Une structure pour prendre les évènements dans la file d'attente sans les utiliser (purge de la file des évènements)
@@ -51,13 +50,15 @@ int Editeur (SDL_Renderer *pMoteurRendu, Sprite images[], FMOD_SYSTEM *pMoteurSo
 
 	while(continuer)	//Tant que continuer ne vaut pas 0
 	{
-		temps = SDL_GetTicks();	//On prend le temps écoulé depuis le lancement de la SDL
+		tempsFPS = SDL_GetTicks();	//On prend le temps écoulé depuis le lancement de la SDL
+
+		differenceFPS = tempsFPS - tempsAncienFPS;
 
 		/* On effectue l'affichage s'il s'est écoulé T_FPS depuis le dernier affichage, pour ne pas saturer le GPU */
-		if(temps - tempsAncien > T_FPS)
+		if(differenceFPS > T_FPS)
 		{
 			AffichageEditeur(pMoteurRendu, images, pMap, entrees, objetPris);
-			tempsAncien = temps;	//On garde le temps actuel dans une autre variable pour pouvoir faire la soustraction
+			tempsAncienFPS = tempsFPS;	//On garde le temps actuel dans une autre variable pour pouvoir faire la soustraction
 		}
 
 		/* On met à jour la map de l'éditeur et on récupère l'éventuel objet qui est sélectionné et qui suit le curseur pour l'affichage */
@@ -196,32 +197,31 @@ int Editeur (SDL_Renderer *pMoteurRendu, Sprite images[], FMOD_SYSTEM *pMoteurSo
 	return 0;	// On retourne au menu
 }
 
-
 Map* InitialisationEditeur (SDL_Renderer *pMoteurRendu, Sprite images[], TTF_Font *polices[], Joueur *pJoueur)
 {
 	Map* pMap = NULL;	//Pointeur vers une structure Map
 	SDL_Surface *pSurfMissileH, *pSurfMissileV;		//Pointeurs vers des surfaces
 	SDL_Color blancOpaque = {255, 255, 255, SDL_ALPHA_OPAQUE};
+	int etatNiveau;
 
 	/* On crée une nouvelle surface avec le texte spécifié, on met à la bonne taille, on la transforme en texture et on libère cette surface */
-	pSurfMissileH = TTF_RenderText_Blended(polices[SNICKY], "Ajout missile H", blancOpaque);
+	pSurfMissileH = TTF_RenderText_Blended(polices[POLICE_SNICKY], "Ajout missile H", blancOpaque);
 	images[AJOUTER_MISSILE_H].pTextures[0] = SDL_CreateTextureFromSurface(pMoteurRendu, pSurfMissileH);
-	TTF_SizeText(polices[SNICKY], "Ajout missile H", &images[AJOUTER_MISSILE_H].position[0].w, &images[AJOUTER_MISSILE_H].position[0].h);
+	TTF_SizeText(polices[POLICE_SNICKY], "Ajout missile H", &images[AJOUTER_MISSILE_H].position[0].w, &images[AJOUTER_MISSILE_H].position[0].h);
 	SDL_FreeSurface(pSurfMissileH);
 
 	/* On crée une nouvelle surface avec le texte spécifié, on met à la bonne taille, on la transforme en texture et on libère cette surface */
-	pSurfMissileV = TTF_RenderText_Blended(polices[SNICKY], "Ajout missile V", blancOpaque);
+	pSurfMissileV = TTF_RenderText_Blended(polices[POLICE_SNICKY], "Ajout missile V", blancOpaque);
 	images[AJOUTER_MISSILE_V].pTextures[0] = SDL_CreateTextureFromSurface(pMoteurRendu, pSurfMissileV);
-	TTF_SizeText(polices[SNICKY], "Ajout missile V", &images[AJOUTER_MISSILE_V].position[0].w, &images[AJOUTER_MISSILE_V].position[0].h);
+	TTF_SizeText(polices[POLICE_SNICKY], "Ajout missile V", &images[AJOUTER_MISSILE_V].position[0].w, &images[AJOUTER_MISSILE_V].position[0].h);
 	SDL_FreeSurface(pSurfMissileV);
 
-	pMap = ChargementNiveau(pMoteurRendu, pJoueur, -1);	//On charge une map en mode 'éditeur' donc vierge
+	pMap = ChargementNiveau(pMoteurRendu, pJoueur, -1, &etatNiveau);	//On charge une map en mode 'éditeur' donc vierge
 
 	InitialisationPositions(images, pJoueur, -1);		//On initialise les positions et les tailles des images en mode 'éditeur'
 
 	return pMap;	//On renvoie l'adresse de la map
 }
-
 
 int AffichageEditeur(SDL_Renderer *pMoteurRendu, Sprite images[], Map* pMap, ClavierSouris entrees, int objetPris)
 {
@@ -273,12 +273,10 @@ int AffichageEditeur(SDL_Renderer *pMoteurRendu, Sprite images[], Map* pMap, Cla
 	/* On affiche le curseur et l'éventuel objet sélectionné qui suit ce dernier */
 	AffichageObjetCurseurEditeur(pMoteurRendu, &entrees, images, objetPris);
 
-
 	SDL_RenderPresent(pMoteurRendu);    //Mise à jour de l'écran
 
 	return 0; //Affichage terminé
 }
-
 
 int MiseAJourMap (Map *pMap, Sprite images[], ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon, Sons *pSons)
 {
@@ -307,7 +305,6 @@ int MiseAJourMap (Map *pMap, Sprite images[], ClavierSouris *pEntrees, FMOD_SYST
 		return missilePris;
 	}
 }
-
 
 int VerifierEmplacements(Sprite images[], Map *pMap)
 {
@@ -364,7 +361,6 @@ int VerifierEmplacements(Sprite images[], Map *pMap)
 	return 0;	//On renvoie 0 s'il n'y a aucun problème
 }
 
-
 void DeplacementObjetEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Sprite images[], ClavierSouris *pEntrees)
 {
 	int i=0;
@@ -389,7 +385,6 @@ void DeplacementObjetEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Sprite images
 				pEntrees->souris.touches[C_MOLETTE] = false;	//On remet à zéro le clic de molette
 			}
 
-
 			/* La position de l'image suit alors celle de la souris mais elle est centrée par rapport au curseur */
 			images[deplacement].position[0].x = pEntrees->souris.position.x - images[deplacement].position[0].w /2;
 			images[deplacement].position[0].y = pEntrees->souris.position.y - images[deplacement].position[0].h /2;
@@ -404,7 +399,6 @@ void DeplacementObjetEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Sprite images
 		}
 	}
 }
-
 
 void MiseAjourMapEtBonusEditeur(ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon, Sons *pSons, Map *pMap, int *pDiaPris, int *pMissilePris)
 {
@@ -468,7 +462,6 @@ void MiseAjourMapEtBonusEditeur(ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon
 	}
 	}
 }
-
 
 void MiseAJourMapMissileEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, ClavierSouris *pEntrees, Sprite images[], int *pMissilePris)
 {
@@ -554,7 +547,6 @@ void MiseAJourMapMissileEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, ClavierSou
 	}
 }
 
-
 void AmeliorationMap(Map *pMap)
 {
 	/* Cette fonction change automatiquement le type de bloc de la map en fonction de ceux au-dessus, elle évite ainsi que plusieurs couches d'herbe ne soient superposées */
@@ -594,7 +586,6 @@ void AmeliorationMap(Map *pMap)
 	}
 }
 
-
 void AffichageBonusEditeur(SDL_Renderer *pMoteurRendu, Sprite images[])
 {
 	/* Cette fonction affiche les bonus dans leur cadre de sélection */
@@ -613,7 +604,6 @@ void AffichageBonusEditeur(SDL_Renderer *pMoteurRendu, Sprite images[])
 		}
 	}
 }
-
 
 void AffichageBoxEditeur(SDL_Renderer *pMoteurRendu, ClavierSouris *pEntrees)
 {
@@ -638,7 +628,6 @@ void AffichageBoxEditeur(SDL_Renderer *pMoteurRendu, ClavierSouris *pEntrees)
 		}
 	}
 }
-
 
 void AffichageObjetCurseurEditeur(SDL_Renderer *pMoteurRendu, ClavierSouris *pEntrees, Sprite images[], int objetPris)
 {

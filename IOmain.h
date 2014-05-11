@@ -80,7 +80,6 @@ typedef struct Joueur	//Structure avec les informations relatives au joueur
 {
 	char pseudo[255];
 	char mdp[100];
-	int score_max;
 	int niveau_max;
 	int connexion;
 	int mode;

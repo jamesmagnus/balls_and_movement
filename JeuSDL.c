@@ -137,13 +137,24 @@ int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur)
 	if (pJoueur->mode == MODE_CAMPAGNE)
 	{
 		InitialiserInfos(pOptions, pJoueur);	//On définit les infos sur la partie en cours
-		Boucle_principale(pJoueur, images, anim, pMoteurRendu, pMoteurSon, pSons, polices);    //Boucle du jeu
+		erreur = Boucle_principale(pJoueur, images, anim, pMoteurRendu, pMoteurSon, pSons, polices);    //Boucle du jeu
+
+		if(erreur == JEU_FIN_ERREUR_CHARGEMENT)
+		{
+			MessageInformations("Erreur lors du chargement d'un niveau, consultez le fichier erreurs.txt", polices, pMoteurRendu, NULL);
+		}
+
 		SauverMySql(pJoueur);
 	}
 	else if(pJoueur->mode == MODE_PERSO)
 	{
 		InitialiserInfos(pOptions, pJoueur);	//On définit les infos sur la partie en cours
-		Boucle_principale(pJoueur, images, anim, pMoteurRendu, pMoteurSon, pSons, polices);    //Boucle du jeu
+		erreur = Boucle_principale(pJoueur, images, anim, pMoteurRendu, pMoteurSon, pSons, polices);    //Boucle du jeu
+
+		if(erreur == JEU_FIN_ERREUR_CHARGEMENT)
+		{
+			MessageInformations("Erreur lors du chargement d'un niveau, consultez le fichier erreurs.txt", polices, pMoteurRendu, NULL);
+		}
 	}
 	else if (pJoueur->mode == MODE_EDITEUR)
 	{
@@ -217,7 +228,7 @@ int SauverMySql(Joueur *pJoueur)
 	if(mysql_real_connect(mysql, "mysql1.alwaysdata.com", "89504_beaussart", "beaussart62", "ballsandmovement_players", 3306, NULL, 0))
 	{
 		/* On crée la requête */
-		sprintf(requete, "UPDATE projetz SET score_max = %ld, niveau_max = %d, autre = '%s' WHERE pseudo = '%s'", infos.score, infos.niveau, pJoueur->autre, pJoueur->pseudo);
+		sprintf(requete, "UPDATE projetz SET niveau_max = %d, autre = '%s' WHERE pseudo = '%s'", infos.niveau, pJoueur->autre, pJoueur->pseudo);
 
 		mysql_query(mysql, requete);	//On lance la requête
 
@@ -233,14 +244,13 @@ void InitialiserInfos(Options *pOptions, Joueur *pJoueur)
 	if(pJoueur->mode == MODE_CAMPAGNE)
 	{
 		infos.niveau = pJoueur->niveau_max;
-		infos.score = pJoueur->score_max;
 	}
 	else	//Mode perso
 	{
 		infos.niveau = 1;
-		infos.score = 1000;
 	}
 
+	infos.score = 1000;
 	infos.vies = pOptions->vies;
 	infos.viesInitiales = pOptions->vies;
 	infos.compteurTemps = 0;

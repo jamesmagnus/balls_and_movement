@@ -940,9 +940,8 @@ void ConnexionMySql(GtkWidget *pWidget, gpointer pData)
 			{
 				/* On connecte le joueur et on remplit les champs de la struture Joueur avec les infos de la base */
 				pJoueur->connexion = 1;
-				pJoueur->score_max = strtol(row[3], NULL, 10);
-				pJoueur->niveau_max = strtol(row[4], NULL, 10);
-				sprintf(pJoueur->autre, row[5]);
+				pJoueur->niveau_max = strtol(row[3], NULL, 10);
+				sprintf(pJoueur->autre, row[4]);
 			}
 		}
 
@@ -955,7 +954,6 @@ void ConnexionMySql(GtkWidget *pWidget, gpointer pData)
 	else	//Sinon on met le mode GUEST en marche, score et niveau par défaut
 	{
 		pJoueur->connexion = 2;
-		pJoueur->score_max = 1000;
 		pJoueur->niveau_max = 1;
 	}
 
@@ -1035,7 +1033,6 @@ void ModeGuest(GtkWidget *pWidget, gpointer pData)
 
 	/* On met le score et le niveau par défaut, on signal que l'on est en mode GUEST */
 	pJoueur->connexion = 2;
-	pJoueur->score_max = 1000;
 	pJoueur->niveau_max = 1;
 
 	/* On lance le dialogue */

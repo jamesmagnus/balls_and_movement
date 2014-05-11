@@ -306,6 +306,10 @@ int GestionEvenements(ClavierSouris *entrees)
 		case SDLK_F5:
 			entrees->clavier[F5] = true;
 			break;
+
+		case SDLK_a:
+			entrees->souris.touches[C_MOLETTE] = true;
+			break;
 		}
 		break;
 
@@ -371,6 +375,10 @@ int GestionEvenements(ClavierSouris *entrees)
 
 		case SDLK_F5:
 			entrees->clavier[F5] = false;
+			break;
+
+		case SDLK_a:
+			entrees->souris.touches[C_MOLETTE] = false;
 			break;
 		}
 		break;
@@ -549,6 +557,16 @@ int ChargementMusic (Sons *pSons, FMOD_SYSTEM *pMoteurSon)
 		return -1;
 	}
 
+	if (FMOD_System_CreateSound(pMoteurSon, "ressources/music/fall.wav", FMOD_2D|FMOD_HARDWARE, NULL, &pSons->bruits[S_TOMBE]) != FMOD_OK)
+	{
+		return -1;
+	}
+
+	if (FMOD_System_CreateSound(pMoteurSon, "ressources/music/levelup.wav", FMOD_2D|FMOD_HARDWARE, NULL, &pSons->bruits[S_SORTIE]) != FMOD_OK)
+	{
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -656,7 +674,7 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level, in
 			*pEtatNiveau = CHARGEMENT_FICHIER_CORROMPU;	//On place un code d'erreur dans la variable
 			return NULL;	//On arrête car le fichier fourni n'est pas le bon
 		}
-		
+
 	}
 	else if (pJoueur->mode == MODE_PERSO)
 	{
@@ -888,12 +906,26 @@ int MessageInformations(const char messageInfos[], TTF_Font *polices[], SDL_Rend
 
 	Texte informations;	//Structure avec un tableau de chaînes, un tableau de textures, un tableau de positions et une surface
 	SDL_Color blancOpaque= {255, 255, 255, SDL_ALPHA_OPAQUE};
+	ClavierSouris entrees;	//Structure pour les entrées si jamais on n'en a pas fournie en paramètre
+
+	if(pEntrees == NULL)
+	{
+/* Pas de pointeur fourni en paramètre donc on initialise la structure locale et on met son adresse dans le pointeur pour ne pas avoir à modifier le reste de la fonction */
+		EntreesZero(&entrees);
+		pEntrees = &entrees;
+	}
 
 	sprintf(informations.chaines[0], messageInfos);	//On copie le message reçu en paramètre dans la première chaîne
 
 	/* On crée une surface à partir de cette chaîne et on enregistre la taille qu'elle va faire */
 	informations.surface = TTF_RenderText_Blended(polices[POLICE_SNICKY_GRAND], informations.chaines[0], blancOpaque);
 	TTF_SizeText(polices[POLICE_SNICKY_GRAND], informations.chaines[0], &informations.positions[0].w, &informations.positions[0].h);
+
+	/* Si jamais la largeur du texte dépasse celle de la fenêtre, alors on la réduit jusqu'à ce qu'elle rentre dedans */
+	while(informations.positions[0].w > Largeur)
+	{
+		informations.positions[0].w -= 10;
+	}
 
 	/* On convertie la surface en texture */
 	informations.pTextures[0] = SDL_CreateTextureFromSurface(pMoteurRendu, informations.surface);
@@ -949,7 +981,7 @@ int MessageInformations(const char messageInfos[], TTF_Font *polices[], SDL_Rend
 
 int VerificationMD5(char empreinte[], char nomFichier[])
 {
-/* Cette fonction permet de comparer l'empreinte md5 d'un fichier avec une connue pour vérifier qu'il n'a pas été corrompu par quelques personnes malveillantes */
+/* Cette fonction permet de comparer l'empreinte md5 d'un fichier avec une connue pour vérifier qu'il n'a pas été corrompu par quelques personnes malveillantes (n'est-ce pas Julien) */
 
 	FILE *pFichierATester = fopen(nomFichier, "rb");	//On ouvre le fichier en mode lecture binaire
 	md5_state_t etat;	//Structure pour le calcul md5
@@ -982,7 +1014,7 @@ int VerificationMD5(char empreinte[], char nomFichier[])
 		i++;
 	}
 
-	if(strcmp(empreinte, md5CalculeHEXA) != 0)
+	if(strcmp(empreinte, md5CalculeHEXA) == 0)
 	{
 		return true;	//On renvoie 'true' si les deux empreintes ne sont pas identiques
 	}

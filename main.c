@@ -338,7 +338,7 @@ void InitialiserJoueur(Joueur *pJoueur)
 {
 	/* On met à zéro les informations sur le joueur */
 	pJoueur->connexion = 0;
-	pJoueur->niveau_max = pJoueur->score_max = 0;
+	pJoueur->niveau_max = 0;
 	sprintf(pJoueur->pseudo, "");
 	sprintf(pJoueur->mdp, "");
 	sprintf(pJoueur->autre, "");

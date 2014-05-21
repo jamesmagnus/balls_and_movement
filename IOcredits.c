@@ -47,12 +47,14 @@ int ChargementCredits(char credit[][100])
 			caractere = fgetc(pFichierCredits);
 			credit[i][j] = caractere;
 			j++;
-		}while(caractere != '\n' && caractere != EOF);
+		}
+		while(caractere != '\n' && caractere != EOF);
 
 		credit[i][j-1] = '\0';   //On applique le caractère de fin de chaine
 		j=0;	//On revient au premier caractère dans le tableau
 		i++;	//On passe à ligne suivante dans le tableau
-	}while(caractere != EOF);
+	}
+	while(caractere != EOF);
 
 	fclose(pFichierCredits);        //On ferme le fichier
 

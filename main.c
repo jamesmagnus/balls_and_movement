@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 	{
 		FMOD_System_PlaySound(pMoteurSon, M_MENU, sons.music[M_MENU], true, NULL);
 		FMOD_System_GetChannel(pMoteurSon, M_MENU, &channelEnCours);
-		FMOD_Channel_SetVolume(channelEnCours, pOptions->volume/100.0);
+		FMOD_Channel_SetVolume(channelEnCours, pOptions->volume/120.0);
 		FMOD_Channel_SetPaused(channelEnCours, false);
 	}
 
@@ -208,7 +208,7 @@ void CreerBoutons( GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWi
 
 	gtk_widget_set_sensitive(*pBoutonEditeur, false);	//On désactive le bouton au début
 
-	g_signal_connect(G_OBJECT(*pBoutonEditeur), "clicked", G_CALLBACK(LancerEditeur), pListeElements);// On ouvre la fenêtre SDL de l'éditeur au clic
+	g_signal_connect(G_OBJECT(*pBoutonEditeur), "clicked", G_CALLBACK(DemandeModeEditeur), pListeElements);// On ouvre la fenêtre SDL de l'éditeur au clic
 
 	g_list_append((GList*)pListeElements, GTK_BUTTON(*pBoutonEditeur)); //2
 
@@ -226,7 +226,7 @@ void CreerBoutons( GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWi
 	gtk_widget_override_background_color(*pBoutonQuitter, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
 	gtk_widget_override_background_color(pBoutonQuitterLabel, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
 
-	g_signal_connect(G_OBJECT(*pBoutonQuitter), "clicked", G_CALLBACK(DestructionFenetre), NULL);	//On ferme quand on clique dessus
+	g_signal_connect(G_OBJECT(*pBoutonQuitter), "clicked", G_CALLBACK(FenetreConfirmationQuitter), NULL);	//On ferme quand on clique dessus
 
 	/*						   */
 	/* On crée le bouton CREDITS */
@@ -271,8 +271,8 @@ void CreerFenetre(GtkWidget **pWindow)
 	gtk_widget_set_events(*pWindow, GDK_KEY_RELEASE_MASK);
 
 	/* Connexion du signal "delete-event" avec la fonction DestructionFenetre qui affiche un message de confirmation pour quitter */
-	g_signal_connect(G_OBJECT(*pWindow), "delete-event", G_CALLBACK(DestructionFenetre), NULL);
-	g_signal_connect(G_OBJECT(*pWindow), "key_release_event", G_CALLBACK(QuitterEchape), NULL);
+	g_signal_connect(G_OBJECT(*pWindow), "delete-event", G_CALLBACK(FenetreConfirmationQuitter), NULL);
+	g_signal_connect(G_OBJECT(*pWindow), "key_release_event", G_CALLBACK(QuitterEchapeMain), NULL);
 
 	gtk_window_set_position(GTK_WINDOW(*pWindow), GTK_WIN_POS_CENTER_ALWAYS);	//Position
 	gtk_window_set_title(GTK_WINDOW(*pWindow), g_locale_to_utf8("Boules et Mouvement", -1, NULL, NULL, NULL));	//Titre
@@ -338,14 +338,17 @@ void InitialiserJoueur(Joueur *pJoueur)
 {
 	/* On met à zéro les informations sur le joueur */
 	pJoueur->connexion = 0;
-	pJoueur->niveau_max = 0;
-	sprintf(pJoueur->pseudo, "");
-	sprintf(pJoueur->mdp, "");
-	sprintf(pJoueur->autre, "");
+	pJoueur->niveau_max = 1;
+	pJoueur->niveauEditeur = -1;
+	sprintf(pJoueur->pseudo, "default_pseudo");
+	sprintf(pJoueur->mdp, "default_mdp");
+	sprintf(pJoueur->autre, "default_other");
 }
 
 void LiberationMemoireMain(GSList *pListeElements, Options *pOptions, FILE *pFichierErreur, Sons *pSons, FMOD_SYSTEM *pMoteurSon, GdkImages *pPix)
 {
+	/* Cette fonction libère la mémoire utilisée par les fonctions d'interface de main et FMOD */
+
 	int i=0;
 
 	while(pSons->music[i] !=NULL)

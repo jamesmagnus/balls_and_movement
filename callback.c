@@ -32,6 +32,7 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 #include "jeu.h"
 #include "JeuSDL.h"
 #include "IOcredits.h"
+#include "IOEditeur.h"
 
 extern int TailleBloc, TailleBoule, TailleMissileH, TailleMissileW, BMusique, BSons;		//Lien vers les variables globales déclarées dans main.c
 extern double Volume, Largeur, Hauteur;
@@ -46,15 +47,15 @@ Coordo coordonnees =
 
 int Redessiner(gpointer pData)
 {
-	gtk_widget_queue_draw(pData);	//On demande à redessiner le widget
+	gtk_widget_queue_draw(GTK_WIDGET(pData));	//On demande à redessiner le widget
 
 	return true;	//On retourne 'true' pour que la répétition de la fonction continue
 }
 
-void DestructionFenetre(GtkWidget *pWidget, gpointer pData)
+void FenetreConfirmationQuitter(GtkWidget *pWidget, gpointer pData)
 {
 	GtkWidget *pFenetreDemande, *pBoutonOUI, *pBoutonNON;
-	GdkRGBA couleurFond= {0.610, 0.805, 0.920, 1}, couleurBoutons= {0.650, 0.850, 0.925, 1}, couleurBoutonsEnfonce= {0.550, 0.655, 7.000, 1};
+	GdkRGBA couleurFond= {0.610, 0.805, 0.920, 1}, couleurBoutons= {0.650, 0.850, 0.925, 1}, couleurBoutonsEnfonce= {0.550, 0.655, 7.000, 1};	//Couleurs
 
 	pFenetreDemande = gtk_dialog_new();		//On crée une fenêtre de dialogue
 
@@ -74,6 +75,7 @@ void DestructionFenetre(GtkWidget *pWidget, gpointer pData)
 	gtk_widget_override_background_color(pBoutonOUI, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
 	gtk_widget_override_background_color(pBoutonOUI, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
 
+	/* On ajoute les 2 possibilités de réponse */
 	gtk_dialog_add_action_widget(GTK_DIALOG(pFenetreDemande), pBoutonNON, GTK_RESPONSE_NO);
 	gtk_dialog_add_action_widget(GTK_DIALOG(pFenetreDemande), pBoutonOUI, GTK_RESPONSE_YES);
 
@@ -96,13 +98,13 @@ void DestructionFenetre(GtkWidget *pWidget, gpointer pData)
 		}
 	}
 
-	gtk_widget_destroy(pFenetreDemande);	// On détruit la fenêtre avant de sortir de la fonction
+	FermerFenetre(pFenetreDemande, NULL);	// On détruit la fenêtre avant de sortir de la fonction
 }
 
 void DemandeModeJeu(GtkWidget *pWidget, gpointer pData)
 {
 	GtkWidget *pWindow, *pBoutonCampagne, *pBoutonPerso, *pLabelBoutonCampagne, *pLabelBoutonPerso, *pHBox;
-	GdkRGBA couleurFond= {0.610, 0.805, 0.920, 1}, couleurBoutons= {0.650, 0.850, 0.925, 1}, couleurBoutonsEnfonce= {0.550, 0.655, 7.000, 1};
+	GdkRGBA couleurFond= {0.610, 0.805, 0.920, 1}, couleurBoutons= {0.650, 0.850, 0.925, 1}, couleurBoutonsEnfonce= {0.550, 0.655, 7.000, 1};	//Couleurs
 	Joueur *pJoueur = (Joueur *)g_slist_nth_data((GSList*)pData, 6);	//On récupère le pointeur vers la structure Joueur dans la liste chaînée
 
 	/* On crée la fenêtre et on définit quelques caractéristiques */
@@ -165,50 +167,349 @@ void DemandeModeJeu(GtkWidget *pWidget, gpointer pData)
 	gtk_widget_show_all(pWindow);	//On affiche la fenêtre
 }
 
+void DemandeModeEditeur(GtkWidget *pWidget, gpointer pData)
+{
+	/* Cette fonction affiche la totalité des niveaux disponibles et permet de choisir l'édition, la suppression, ou l'ajout de niveau */
+
+	GtkWidget *pWindow, *pBoutonRetour, *pBoutonSupprimer, *pBoutonEditer, *pBoutonAjouter, *pLabelBoutonRetour, *pLabelBoutonSupprimer, *pLabelBoutonEditer, *pLabelBoutonAjouter, *pHBox, *pVBox;
+	GdkRGBA couleurFond= {0.610, 0.805, 0.920, 1}, couleurBoutons= {0.650, 0.850, 0.925, 1}, couleurBoutonsEnfonce= {0.550, 0.655, 7.000, 1};	//Couleurs
+	Joueur *pJoueur = (Joueur *)g_slist_nth_data((GSList*)pData, 6);	//On récupère le pointeur vers la structure Joueur dans la liste chaînée
+	FILE *pFichierNiveau=NULL;	//Pointeur sur le fichier
+	int i=0, nb=0;
+	static int num=0;	//Variable statique pour pouvoir y accéder lorsque la fonction sera terminée, via son adresse
+	char chaine[50]="", titreNiveau[100][50]= {""};	//Différentes chaînes pour stocker ce qu'on va lire
+	char *c=NULL;	//Pointeur sur un caractère pour faire des recherches
+	GdkPixbuf *pApercu=NULL, *pApercu2=NULL;	//Pointeurs sur des pixbufs pour charger les aperçus
+
+	GtkListStore *pListeMagasin = gtk_list_store_new (3, G_TYPE_INT, G_TYPE_STRING, GDK_TYPE_PIXBUF);	//On crée une liste avec 3 colonnes
+	GtkTreeIter iter;	//Descripteur de ligne (interne au magasin)
+	GtkWidget *pRenduListe;	//Permet de l'affichage du contenu de la liste
+	GtkTreeViewColumn  *pColl1, *pCall2, *pCall3;	//Permet de former les différentes colonnes à afficher
+	GtkCellRenderer *pRenduCellule;	//Permet de former les différentes cellules de chaque colonne
+	GtkTreeSelection *pElementSelectionne=NULL;	//Pointeur pour repérer l'élément qui est actuellement sélectionné
+
+	/* On ouvre le fichier en lecture et on vérifie */
+	pFichierNiveau = fopen("ressources/levelUser.lvl", "r");
+
+	if(pFichierNiveau == NULL)
+	{
+		exit(EXIT_FAILURE);	//On quitte si le fichier n'existe pas
+	}
+
+	/* On lit l'intégralité du fichier, à chaque fois que l'on trouve un titre on le stocke, on incrémente le compteur de niveaux et on supprime le retour à la ligne à la fin du titre */
+	while(fgets(chaine, 50, pFichierNiveau) != 0)
+	{
+		if(strcmp(chaine, "#titre\n") == 0)
+		{
+			fgets(titreNiveau[nb], 50, pFichierNiveau);
+			c = strstr(titreNiveau[nb], "\n");
+
+			if(c != NULL)
+			{
+				*c = '\0';
+			}
+
+			nb++;
+		}
+	}
+
+	/* On fait une boucle pour chaque ligne */
+	for(i=0; i<nb; i++)
+	{
+		/* On charge l'aperçu de chaque niveau */
+		sprintf(chaine, "ressources/imgLevel/preview%d.png", i+1);
+		pApercu = gdk_pixbuf_new_from_file(chaine, NULL);
+
+		/* On fait une mise à l'échelle pour éviter qu'il ne soit trop grand */
+		pApercu2 = gdk_pixbuf_scale_simple(pApercu, 10, 10, GDK_INTERP_BILINEAR);
+
+		/* On ajoute une ligne à la liste */
+		gtk_list_store_append(pListeMagasin, &iter);
+
+		/* On complète ensuite cette ligne avec les informations correspondantes */
+		gtk_list_store_set(pListeMagasin, &iter, NUMERO_NIVEAU, i+1, NOM_NIVEAU, g_locale_to_utf8(titreNiveau[i], -1, NULL, NULL, NULL), APERCU_NIVEAU, pApercu2, -1);
+	}
+
+	/* On crée ensuite le rendu de la liste d'après le modèle précédemment crée */
+	pRenduListe = gtk_tree_view_new_with_model (GTK_TREE_MODEL(pListeMagasin));
+
+	/* La première colonne est celle du numéro du niveau */
+	pColl1 = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(pColl1, g_locale_to_utf8("°", -1, NULL, NULL, NULL));
+	pRenduCellule = gtk_cell_renderer_text_new();
+	gtk_tree_view_column_pack_start(pColl1, pRenduCellule, false);
+	gtk_tree_view_column_add_attribute(pColl1, pRenduCellule, "text", NUMERO_NIVEAU);
+
+	/* On ajoute la colonne */
+	gtk_tree_view_append_column(GTK_TREE_VIEW(pRenduListe), pColl1);
+
+	/* De même avec la colonne de titre de niveau */
+	pCall2 = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(pCall2, "Niveau");
+	pRenduCellule = gtk_cell_renderer_text_new();
+	gtk_tree_view_column_pack_start(pCall2, pRenduCellule, false);
+	gtk_tree_view_column_add_attribute(pCall2, pRenduCellule, "text", NOM_NIVEAU);
+
+	gtk_tree_view_append_column(GTK_TREE_VIEW(pRenduListe), pCall2);
+
+	/* Puis avec la colonne d'aperçus */
+	pCall3 = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(pCall3, g_locale_to_utf8("Aperçu", -1, NULL, NULL, NULL));
+	pRenduCellule = gtk_cell_renderer_pixbuf_new();
+	gtk_tree_view_column_pack_start(pCall3, pRenduCellule, false);
+	gtk_tree_view_column_add_attribute(pCall3, pRenduCellule, "pixbuf", APERCU_NIVEAU);
+
+	gtk_tree_view_append_column(GTK_TREE_VIEW(pRenduListe), pCall3);
+
+	/* On affecte le pointeur sur l'élément qui est sélectionné */
+	pElementSelectionne = gtk_tree_view_get_selection(GTK_TREE_VIEW(pRenduListe));
+	/* On connecte au signal "changed" la fonction qui va mettre à jour la variable qui retient le numéro du niveau actuellement sélectionné, via son adresse, passée en paramètre */
+	g_signal_connect(pElementSelectionne, "changed", G_CALLBACK(MiseAJourSelection), &num);
+
+	/* On ajoute quelques adresses à la liste pour pouvoir les utilisées dans d'autres fonctions */
+	g_slist_append(pData, &num);	//7
+	g_slist_append(pData, pListeMagasin);	//8
+
+	/* On crée la fenêtre et on définit quelques caractéristiques */
+	pWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_position(GTK_WINDOW(pWindow), GTK_WIN_POS_CENTER);
+	gtk_window_set_icon_from_file(GTK_WINDOW(pWindow), "ressources/img/z.png", NULL);
+	gtk_window_set_title(GTK_WINDOW(pWindow), "Editeur");
+	gtk_widget_set_size_request(pWindow, 600, 600);
+	gtk_window_set_resizable(GTK_WINDOW(pWindow), false);
+	gtk_widget_override_background_color(pWindow, GTK_STATE_FLAG_NORMAL, &couleurFond);
+
+	/* On crée le bouton Retour */
+	pBoutonRetour = gtk_button_new();
+	gtk_widget_set_margin_left(pBoutonRetour, 50);
+	gtk_widget_set_margin_top(pBoutonRetour, 30);
+	gtk_widget_set_margin_bottom(pBoutonRetour, 30);
+	g_signal_connect(G_OBJECT(pBoutonRetour), "clicked", G_CALLBACK(FermerFenetre), pData);//On connecte avec la fonction correspondante
+
+	/* On crée le bouton Supprimer */
+	pBoutonSupprimer = gtk_button_new();
+	gtk_widget_set_margin_right(pBoutonSupprimer, 50);
+	gtk_widget_set_margin_top(pBoutonSupprimer, 30);
+	gtk_widget_set_margin_bottom(pBoutonSupprimer, 30);
+	g_signal_connect(G_OBJECT(pBoutonSupprimer), "clicked", G_CALLBACK(SupprimerNiveau), pData);	//On connecte avec la fonction correspondante
+
+	/* On crée le bouton Editer */
+	pBoutonEditer = gtk_button_new();
+	gtk_widget_set_margin_right(pBoutonEditer, 50);
+	gtk_widget_set_margin_top(pBoutonEditer, 30);
+	gtk_widget_set_margin_bottom(pBoutonEditer, 30);
+	g_signal_connect(G_OBJECT(pBoutonEditer), "clicked", G_CALLBACK(EditionNiveau), pData);	//On connecte avec la fonction correspondante
+
+	/* On crée le bouton Ajouter */
+	pBoutonAjouter = gtk_button_new();
+	gtk_widget_set_margin_right(pBoutonAjouter, 50);
+	gtk_widget_set_margin_top(pBoutonAjouter, 30);
+	gtk_widget_set_margin_bottom(pBoutonAjouter, 30);
+	g_signal_connect(G_OBJECT(pBoutonAjouter), "clicked", G_CALLBACK(LancerEditeur), pData);	//On connecte avec la fonction correspondante
+
+	/* On crée le texte du bouton Retour */
+	pLabelBoutonRetour = gtk_label_new("<span size=\"15000\"><b>Retour</b></span>");
+	gtk_label_set_use_markup(GTK_LABEL(pLabelBoutonRetour), true);
+	gtk_label_set_justify(GTK_LABEL(pLabelBoutonRetour), GTK_JUSTIFY_CENTER);
+	gtk_widget_override_background_color(pLabelBoutonRetour, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pLabelBoutonRetour, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_set_size_request(pLabelBoutonRetour, 180, 40);
+
+	/* On crée le texte du bouton Supprimer */
+	pLabelBoutonSupprimer = gtk_label_new("<span size=\"15000\"><b>Supprimer</b></span>");
+	gtk_label_set_use_markup(GTK_LABEL(pLabelBoutonSupprimer), true);
+	gtk_label_set_justify(GTK_LABEL(pLabelBoutonSupprimer), GTK_JUSTIFY_CENTER);
+	gtk_widget_override_background_color(pLabelBoutonSupprimer, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pLabelBoutonSupprimer, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_set_size_request(pLabelBoutonSupprimer, 180, 40);
+
+	/* On crée le texte du bouton Editer */
+	pLabelBoutonEditer = gtk_label_new("<span size=\"15000\"><b>Editer</b></span>");
+	gtk_label_set_use_markup(GTK_LABEL(pLabelBoutonEditer), true);
+	gtk_label_set_justify(GTK_LABEL(pLabelBoutonEditer), GTK_JUSTIFY_CENTER);
+	gtk_widget_override_background_color(pLabelBoutonEditer, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pLabelBoutonEditer, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_set_size_request(pLabelBoutonEditer, 180, 40);
+
+	/* On crée le texte du bouton Ajouter */
+	pLabelBoutonAjouter = gtk_label_new("<span size=\"15000\"><b>Ajouter</b></span>");
+	gtk_label_set_use_markup(GTK_LABEL(pLabelBoutonAjouter), true);
+	gtk_label_set_justify(GTK_LABEL(pLabelBoutonAjouter), GTK_JUSTIFY_CENTER);
+	gtk_widget_override_background_color(pLabelBoutonAjouter, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pLabelBoutonAjouter, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_set_size_request(pLabelBoutonAjouter, 180, 40);
+
+	/* On ajoute les textes dans les boutons */
+	gtk_container_add(GTK_CONTAINER(pBoutonAjouter), pLabelBoutonAjouter);
+	gtk_container_add(GTK_CONTAINER(pBoutonEditer), pLabelBoutonEditer);
+	gtk_container_add(GTK_CONTAINER(pBoutonSupprimer), pLabelBoutonSupprimer);
+	gtk_container_add(GTK_CONTAINER(pBoutonRetour), pLabelBoutonRetour);
+
+	/* On crée la boîte horizontale et on y met les 4 boutons */
+	pHBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_pack_start(GTK_BOX(pHBox), pBoutonAjouter, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(pHBox), pBoutonEditer, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(pHBox), pBoutonSupprimer, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(pHBox), pBoutonRetour, false, false, 0);
+
+	/* Une boîte verticale pour contenir la liste et la boîte des boutons */
+	pVBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_box_pack_start(GTK_BOX(pVBox), pRenduListe, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(pVBox), pHBox, false, false, 0);
+
+	/* On met la boîte dans la fenêtre */
+	gtk_container_add(GTK_CONTAINER(pWindow), pVBox);
+
+	gtk_widget_show_all(pWindow);	//On affiche la fenêtre
+}
+
+void SupprimerNiveau(GtkWidget *pWidget, gpointer pData)
+{
+	/* Catte fonction permet de supprimer un niveau et de mettre à jour l'affichage de la liste */
+
+	int *pNum = (int*)g_slist_nth_data((GSList*)pData, 7);	//On récupère l'adresse de la variable qui contient le numéro du niveau actuellement sélectionné
+	GtkListStore *pListeMagasin = (GtkListStore*)g_slist_nth_data((GSList*)pData, 8);	//On récupère un pointeur sur la liste
+	GtkTreeIter iter;
+	GtkTreePath *pChemin;	//Pointeur vers un chemin dans la liste que l'on va crée après
+	char chaine[200];	//Chaîne pour travailler
+	int taille=0,i=0,j=0;	//Compteurs
+	FILE *pFichierNiveau = fopen("ressources/levelUser.lvl", "r");	//On ouvre le fichier de niveau en lecture
+	char *bufferAvant=NULL, *bufferApres=NULL;	//2 buffers pour retenir ce qu'il y a avant et après le niveau à effacer
+
+	while(i<*pNum-1)	//Tant qu'on est pas juste avant le début du niveau à effacer
+	{
+		fgets(chaine, 200, pFichierNiveau);	//On lit une ligne
+		taille += strlen(chaine);	//On ajoute sa taille, en octet, à 'taille'
+		bufferAvant= realloc(bufferAvant, taille*sizeof(char)+1);	//On réalloue le buffer avec un agrandissement
+		strcpy(bufferAvant+j, chaine);	//On ajoute dedans la ligne que l'on vient de lire car le buffer est maintenant assez grand
+		/* On retient la taille de la ligne que l'on vient d'ajouter pour qu'au prochain tour de boucle on puisse savoir à quel niveau écrire dans le buffer */
+		j=taille;
+
+		/* A chaque fois que l'on arrive à la fin d'un niveau on incrémente i */
+		if (strcmp(chaine, "##--##\n") == 0)
+		{
+			i++;
+		}
+	}
+
+	/* On passe le niveau à effacer */
+	do
+	{
+		fgets(chaine, 200, pFichierNiveau);
+	}
+	while (strcmp(chaine, "##--##\n") != 0);
+
+	/* On réinitialise 'i' et 'taille' */
+	taille=j=0;
+
+	/* On lit toutes les lignes jusqu'à la fin du fichier */
+	while(!feof(pFichierNiveau))
+	{
+		if(fgets(chaine, 200, pFichierNiveau) != NULL)	//Empêche que lors du dernier tour de boucle on copie deux fois la dernière ligne dans le buffer
+		{
+			/* On copie la ligne dans le buffer, au bon endroit et en l'ayant agrandi auparavant */
+			taille += strlen(chaine);
+			bufferApres= realloc(bufferApres, taille*sizeof(char)+1);
+			strcpy(bufferApres+j, chaine);
+			j=taille;
+		}
+	}
+
+	fclose(pFichierNiveau);	//On ferme le fichier
+
+	fopen("ressources/levelUser.lvl", "w");	//On ré-ouvre le fichier en le vidant
+
+	/* On copie le buffer avant, s'il existe */
+	if(bufferAvant != NULL)
+	{
+		fputs(bufferAvant, pFichierNiveau);
+	}
+
+	/* Le buffer après, s'il existe */
+	if(bufferApres != NULL)
+	{
+		fputs(bufferApres, pFichierNiveau);
+	}
+
+	fclose(pFichierNiveau);	//On ferme le fichier de niveau
+
+	/* On crée la chaîne contenant un seul caractère, le numéro du niveau effacé */
+	sprintf(chaine, "%d", *pNum-1);
+	pChemin = gtk_tree_path_new_from_string(chaine);	//On génére le chemin correspondant à la ligne en question
+	gtk_tree_model_get_iter(GTK_TREE_MODEL(pListeMagasin), &iter, pChemin);	//On récupère l'iter correspondant à cette ligne
+	gtk_list_store_remove(pListeMagasin, &iter);	//Enfin on retire de la liste la ligne concernant le niveau effacé
+}
+
+void EditionNiveau(GtkWidget *pWidget, gpointer pData)
+{
+	int *pNum = (int*)g_slist_nth_data((GSList*)pData, 7);	//On récupère le pointeur vers le numéro du niveau sélectionné
+	Joueur *pJoueur = (Joueur *)g_slist_nth_data((GSList*)pData, 6);	//On récupère le pointeur vers la structure Joueur dans la liste chaînée
+
+	pJoueur->niveauEditeur = *pNum;	//On déclare que le niveau à charger est celui sélectionné
+
+	LancerEditeur(pWidget, pData);	//On appelle la fonction qui lancer l'éditeur + quelques autres choses
+}
+
+void MiseAJourSelection(GtkTreeSelection *pSelection, gpointer pData)
+{
+	/* Cette fonction conserve à jour la variable qui retient le niveau actuellement sélectionné */
+
+	GtkListStore *pListeMagasin = NULL;
+	GtkTreeIter iter;
+	int *pNum = (int*)pData;	//On récupère le pointeur sur la variable à mettre à jour
+
+	gtk_tree_selection_get_selected(pSelection, (GtkTreeModel**)&pListeMagasin, &iter);	//On récupère la liste et l'iter correspondant à la sélection actuelle
+
+	/* On récupère ce qu'il y a dans la colonne NUMERO_NIVEAU et le stocke dans la variable dont l'adresse est pNum */
+	gtk_tree_model_get(GTK_TREE_MODEL(pListeMagasin), &iter, NUMERO_NIVEAU, pNum, -1);
+}
+
 void LancerJeuModeCampagne(GtkWidget *pWidget, gpointer pData)
 {
+	/* Cette fonction va lancer le jeu en mode campagne dans un nouveau thread */
+
 	Joueur *pJoueur = (Joueur *)g_slist_nth_data((GSList*)pData, 6);	//On récupère le pointeur vers la structure Joueur dans la liste chaînée
-	Sons *pSons = (Sons*)g_slist_nth_data((GSList*)pData, 4);	//De même avec celui vers la structure Sons
-	FMOD_SYSTEM *pMoteurSon = (FMOD_SYSTEM *)g_slist_nth_data((GSList*)pData, 3);	//De même avec celui vers la structure FMOD_SYSTEM
 
 	pJoueur->mode = MODE_CAMPAGNE;	//On définit le mode de jeu qui va être utilisé
 
-	gtk_widget_destroy(gtk_widget_get_toplevel(pWidget));	//On détruit la fenêtre de choix de mode de jeu
+	FermerFenetre(pWidget, NULL);	//On détruit la fenêtre de choix de mode de jeu
 
-	/* On lance le jeu */
-	gtk_widget_hide(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On cache la fenêtre du menu
-	LancerJeu(pMoteurSon, pSons, pJoueur);
-	gtk_widget_show_all(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On affiche à nouveau la fenêtre du menu
+	/* On lance le jeu dans un autre thread pour ne pas bloquer GTK */
+	g_thread_new("JeuThread", (GThreadFunc)LancerJeu, pData);
 }
 
 void LancerJeuModePerso(GtkWidget *pWidget, gpointer pData)
 {
+	/* Cette fonction lance le jeu dans un autre thread */
+
 	Joueur *pJoueur = (Joueur *)g_slist_nth_data((GSList*)pData, 6);	//On récupère le pointeur vers la structure Joueur dans la liste chaînée
-	Sons *pSons = (Sons*)g_slist_nth_data((GSList*)pData, 4);
-	FMOD_SYSTEM *pMoteurSon = (FMOD_SYSTEM *)g_slist_nth_data((GSList*)pData, 3);
 
 	pJoueur->mode = MODE_PERSO;		//On définit le mode de jeu qui va être utilisé
 
-	gtk_widget_destroy(gtk_widget_get_toplevel(pWidget));	//On détruit la fenêtre de choix de mode de jeu
+	FermerFenetre(pWidget, NULL);	//On détruit la fenêtre de choix de mode de jeu
 
-	/* On lance le jeu */
-	gtk_widget_hide(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On cache la fenêtre du menu
-	LancerJeu(pMoteurSon, pSons, pJoueur);
-	gtk_widget_show_all(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On affiche à nouveau la fenêtre du menu
+	/* On lance le jeu dans un autre thread pour ne pas bloquer GTK */
+	g_thread_new("JeuThread", (GThreadFunc)LancerJeu, pData);
 }
 
 void LancerEditeur(GtkWidget *pWidget, gpointer pData)
 {
-	Joueur *pJoueur = (Joueur *)g_slist_nth_data((GSList*)pData, 6);	//On récupère le pointeur vers la structure Joueur dans la liste chaînée
-	Sons *pSons = (Sons*)g_slist_nth_data((GSList*)pData, 4);		//De même avec celui vers la structure Sons
-	FMOD_SYSTEM *pMoteurSon = (FMOD_SYSTEM *)g_slist_nth_data((GSList*)pData, 3);	//De même avec celui vers la structure FMOD_SYSTEM
+	/* Cette fonction lance l'éditeur dans un autre thread et supprime de la liste chaînée les pointeurs vers la liste et vers la variable qui retient le niveau actuellement sélectionné (on en a plus besoin puisqu'on l'on ferme la fenêtre, et ils vont provoquer des bugs apres si on rouvre la fenêtre plus tard */
+
+	int *pNum = (int*)g_slist_nth_data((GSList*)pData, 7);	//On récupère le pointeur vers la variable qui retient le niveau sélectionné, dans la liste chaînée
+	Joueur *pJoueur = (Joueur *)g_slist_nth_data((GSList*)pData, 6);	//On récupère le pointeur vers la structure Joueur, dans la liste chaînée
+	GtkListStore *pListeMagasin = (GtkListStore*)g_slist_nth_data((GSList*)pData, 8);	//On récupère le pointeur vers la liste, dans la liste chaînée
 
 	pJoueur->mode = MODE_EDITEUR;	//On définit le mode de jeu qui va être utilisé
 
-	/* On lance l'éditeur */
-	gtk_widget_hide(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On cache la fenêtre du menu
-	LancerJeu(pMoteurSon, pSons, pJoueur);
-	gtk_widget_show_all(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));	//On affiche à nouveau la fenêtre du menu
+	FermerFenetre(pWidget, NULL);	//On ferme la fenêtre de choix du niveau à modifier/supprimer
+
+	/* On retire les pointeurs de la liste chaînée */
+	g_slist_remove(pData, pNum);
+	g_slist_remove(pData, pListeMagasin);
+
+	/* On lance l'éditeur dans un autre thread pour ne pas bloquer GTK */
+	g_thread_new("EditeurThread", (GThreadFunc)LancerJeu, pData);
 }
 
 void LancementCredits(GtkWidget *pWidget, gpointer pData)
@@ -218,19 +519,22 @@ void LancementCredits(GtkWidget *pWidget, gpointer pData)
 	FMOD_CHANNEL *pChannelEnCours=NULL;
 	GdkRGBA couleurFond= {0.610, 0.805, 0.920, 1};	//Couleur du fond de la fenêtre
 	char credits[50][100];	//Tableau de 50 chaînes de caractères
-	int nbLignes = ChargementCredits(credits), i=0;
+	int nbLignes = ChargementCredits(credits), i=0;	//On charge les crédits depuis le fichier et on initialise le nombre de lignes ainsi qu'un compteur
 
-	/* On arrête la musique du menu */
-	FMOD_System_GetChannel((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_MENU, &pChannelEnCours);
-	FMOD_Channel_SetPaused(pChannelEnCours, true);
+	if(BMusique)
+	{
+		/* On arrête la musique du menu */
+		FMOD_System_GetChannel((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_MENU, &pChannelEnCours);
+		FMOD_Channel_SetPaused(pChannelEnCours, true);
 
-	FMOD_Sound_SetLoopCount(((Sons *)g_slist_nth_data(pData, 4))->music[M_CREDITS], -1);      // On active la lecture en boucle
+		FMOD_Sound_SetLoopCount(((Sons *)g_slist_nth_data(pData, 4))->music[M_CREDITS], -1);      // On active la lecture en boucle
 
-	/* On lit la musique des crédits */
-	FMOD_System_PlaySound((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_CREDITS, ((Sons *)g_slist_nth_data(pData, 4))->music[M_CREDITS], true, NULL);
-	FMOD_System_GetChannel((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_CREDITS, &pChannelEnCours);
-	FMOD_Channel_SetVolume(pChannelEnCours, (float)(((Options*)g_slist_nth_data(pData, 5))->volume/100.0));
-	FMOD_Channel_SetPaused(pChannelEnCours, false);
+		/* On lit la musique des crédits */
+		FMOD_System_PlaySound((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_CREDITS, ((Sons *)g_slist_nth_data(pData, 4))->music[M_CREDITS], true, NULL);
+		FMOD_System_GetChannel((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_CREDITS, &pChannelEnCours);
+		FMOD_Channel_SetVolume(pChannelEnCours, (float)(((Options*)g_slist_nth_data(pData, 5))->volume/100.0));
+		FMOD_Channel_SetPaused(pChannelEnCours, false);
+	}
 
 	/* On crée le titre Crédits */
 	lignesCredits[0] = gtk_label_new(g_locale_to_utf8("<span underline=\"single\" font-family=\"Snickles\" size=\"55000\">Crédits</span>", -1, NULL, NULL, NULL));
@@ -249,11 +553,13 @@ void LancementCredits(GtkWidget *pWidget, gpointer pData)
 
 	/* On crée la fenêtre des crédits et on la connecte à la fonction qui la ferme quand on clique sur la croix */
 	pWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_widget_set_events(pWindow, GDK_KEY_RELEASE_MASK);
 	gtk_window_set_position(GTK_WINDOW(pWindow), GTK_WIN_POS_CENTER_ALWAYS);
 	gtk_widget_set_size_request(pWindow, 800, 600);
 	gtk_window_set_icon_from_file(GTK_WINDOW(pWindow), "ressources/img/z.png", NULL);
 	gtk_widget_override_background_color(pWindow, GTK_STATE_FLAG_NORMAL, &couleurFond);
 	g_signal_connect(pWindow, "delete-event", G_CALLBACK(FermerCredit), pData);
+	g_signal_connect(G_OBJECT(pWindow), "key_release_event", G_CALLBACK(QuitterEchapeCredits), pData);
 
 	/* Un peu de marge au-dessus et en-dessous et on met le titre dans la boîte */
 	g_object_set(lignesCredits[0], "margin-top", 10, NULL);
@@ -277,14 +583,16 @@ void LancementCredits(GtkWidget *pWidget, gpointer pData)
 
 void LancementOptions(GtkWidget *pWidget, gpointer pData)
 {
-	GtkWidget *pWindow, *pHbox1, *pHbox2, *pVbox1, *pVbox2, *pVbox3, *pTitre, *pCase1, *pCase2, *pCase3, *pBoutonValider, *pBoutonAnnuler, *pListeResolution, *pCurseur1, *pCurseur2, *pResolution, *pNBVies, *pVolume, *pSeparateur;
+	GtkWidget *pWindow, *pHbox1, *pHbox2, *pVbox1, *pVbox2, *pVbox3, *pTitre, *pCase1, *pCase2, *pCase3, *pBoutonValider, *pBoutonAnnuler, *pLabelAnnuler, *pLabelValider, *pListeResolution, *pCurseur1, *pCurseur2, *pResolution, *pNBVies, *pVolume, *pSeparateur;
 	char options[50][50] = {{""}};
 	Options *pOptions = NULL;
-	GdkRGBA couleurFond= {0.610, 0.805, 0.920, 1};
+	GdkRGBA couleurFond= {0.610, 0.805, 0.920, 1}, couleurBoutons= {0.650, 0.850, 0.925, 1}, couleurBoutonsEnfonce= {0.550, 0.655, 7.000, 1};
 
 	/* On lit les options dans le fichier et on remplit la structure Options avec */
 	LectureOptions(options);
 	pOptions = DecouperOptions(options);
+
+	g_slist_append(pData, pOptions);	//7
 
 	/* On crée la fenêtre, on lui donne ses caractéristiques et on la connecte avec la fonction d'affichage de la fenêtre du menu quand elle est détruite */
 	pWindow = gtk_window_new(GTK_WINDOW_POPUP);
@@ -422,13 +730,25 @@ void LancementOptions(GtkWidget *pWidget, gpointer pData)
 	gtk_widget_set_margin_top(pHbox2, 40);
 
 	/* On crée ces fameux boutons que l'on connecte aux fonctions correspondantes, pour fermer la fenêtre ou pour sauvegarder puis fermer la fenêtre */
-	pBoutonAnnuler = gtk_button_new_with_label("ANNULER");
+	pBoutonAnnuler = gtk_button_new();
+	pLabelAnnuler = gtk_label_new("ANNULER");
+	gtk_container_add(GTK_CONTAINER(pBoutonAnnuler), pLabelAnnuler);
 	gtk_widget_set_margin_left(pBoutonAnnuler, 120);
+	gtk_widget_override_background_color(pLabelAnnuler, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pLabelAnnuler, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_override_background_color(pBoutonAnnuler, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pBoutonAnnuler, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
 	g_signal_connect(pBoutonAnnuler, "clicked", G_CALLBACK(FermerFenetre), pData);
 
-	pBoutonValider = gtk_button_new_with_label("VALIDER");
+	pBoutonValider = gtk_button_new();
+	pLabelValider = gtk_label_new("VALIDER");
+	gtk_container_add(GTK_CONTAINER(pBoutonValider), pLabelValider);
 	gtk_widget_set_margin_right(pBoutonValider, 120);
-	g_signal_connect(pBoutonValider, "clicked", G_CALLBACK(SauverOptions), pOptions);
+	gtk_widget_override_background_color(pLabelValider, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pLabelValider, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	gtk_widget_override_background_color(pBoutonValider, GTK_STATE_FLAG_NORMAL, &couleurBoutons);
+	gtk_widget_override_background_color(pBoutonValider, GTK_STATE_FLAG_ACTIVE, &couleurBoutonsEnfonce);
+	g_signal_connect(pBoutonValider, "clicked", G_CALLBACK(SauverOptions), pData);
 
 	/* On ajoute les boutons dans la boîte H2 */
 	gtk_box_pack_start(GTK_BOX(pHbox2), pBoutonAnnuler, false, false, 0);
@@ -612,25 +932,38 @@ void FermerCredit(GtkWidget *pWidget, GdkEvent *event, gpointer pData)
 {
 	FMOD_CHANNEL *channelEnCours;
 
-	/* On met en pause la musique des crédits */
-	FMOD_System_GetChannel((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_CREDITS, &channelEnCours);
-	FMOD_Channel_SetPaused(channelEnCours, true);
+	if(BMusique)
+	{
+		/* On met en pause la musique des crédits */
+		FMOD_System_GetChannel((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_CREDITS, &channelEnCours);
+		FMOD_Channel_SetPaused(channelEnCours, true);
 
-	/* On remet la musique du menu en marche */
-	FMOD_System_GetChannel((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_MENU, &channelEnCours);
-	FMOD_Channel_SetPaused(channelEnCours, false);
+		/* On remet la musique du menu en marche */
+		FMOD_System_GetChannel((FMOD_SYSTEM *)g_slist_nth_data(pData, 3), M_MENU, &channelEnCours);
+		FMOD_Channel_SetPaused(channelEnCours, false);
+	}
 
 	/* On détruit la fenêtre des crédits et on affiche la fenêtre du menu */
-	gtk_widget_destroy(pWidget);
-	gtk_widget_show_all(GTK_WIDGET(g_slist_nth_data((GSList*)pData, 0)));
+	FermerFenetre(pWidget, pData);
+	AfficherMenu(pWidget, pData);
 }
 
 void FermerFenetre(GtkWidget *pWidget, gpointer pData)
 {
-	/* Cette fonction permet de fermer la fenêtre reçue en paramètre */
+	/* Cette fonction permet de fermer la fenêtre reçue en paramètre et tente de supprimer les pointeurs inutiles de la liste chaînée qui auraient pu être introduit par la fenêtre que l'on va fermer */
+
+	int *pNum = (int*)g_slist_nth_data((GSList*)pData, 7);
+	GtkListStore *pListeMagasin = (GtkListStore*)g_slist_nth_data((GSList*)pData, 8);
 
 	/* On récupére la fenêtre si jamais 'pWidget' est un bouton */
 	GtkWidget *pWindow = gtk_widget_get_toplevel(pWidget);
+
+	/* on tente de supprimer pNum et pListeMagasin s'il existe dans la liste chaînée */
+	if(pNum != NULL || pListeMagasin != NULL)
+	{
+		g_slist_remove(pData, pListeMagasin);
+		g_slist_remove(pData, pNum);
+	}
 
 	/* On ferme la fenêtre si on a bien récupéré une fenêtre (top level) */
 	if(gtk_widget_is_toplevel(pWindow))
@@ -641,9 +974,12 @@ void FermerFenetre(GtkWidget *pWidget, gpointer pData)
 
 void SauverOptions(GtkWidget *pWidget, gpointer pData)
 {
-	Options *pOptions = pData;	//On prend le pointeur sur la structure Options reçu en paramètre
+	Options *pOptions = (Options*)g_slist_nth_data(pData, 7);	//On prend le pointeur sur la structure Options reçu en paramètre
 	char options[10][50] = {{""}};	//Un tableau de 10 chaînes de 50 caractères
 	char chaine[50] = "";	//Une chaînes de 50 caractères
+	FMOD_SYSTEM *pMoteurSon = (FMOD_SYSTEM*)g_slist_nth_data(pData, 3); //On récupère le pointeur sur le moteur son
+	FMOD_CHANNEL *pChannelEnCours=NULL;	//Pour le contrôle de la musique
+	Sons *pSons = (Sons*)g_slist_nth_data(pData, 4);	//On récupère le pointeur sur la structure Sons
 
 	options[0][0] = (char)pOptions->nbLigne;	//On stocke le nombre de ligne à mettre dans le fichier d'options dans le premier octet du tableau
 
@@ -656,14 +992,14 @@ void SauverOptions(GtkWidget *pWidget, gpointer pData)
 	strcat(options[3], chaine);
 	sprintf(chaine, "vies=%d", pOptions->vies);
 	strcat(options[4], chaine);
-	sprintf(chaine, "musique=%lf", pOptions->volume);
+	sprintf(chaine, "volume=%lf", pOptions->volume);
 	strcat(options[5], chaine);
 	sprintf(chaine, "full=%d", pOptions->fullScreen);
 	strcat(options[6], chaine);
 
 	ValiderChangement(options);	//On sauvegarde dans le fichier
 
-/* On réaffecte les variables globales avec les nouvelles options que l'on vient d'enregistrer pour qu'elles prennent effet sans avoir besoin de redémarrer */
+	/* On réaffecte les variables globales avec les nouvelles options que l'on vient d'enregistrer pour qu'elles prennent effet sans avoir besoin de redémarrer */
 	Hauteur = pOptions->hauteur;
 	Largeur = pOptions->largeur;
 	TailleBloc = Arrondir(Largeur/40.0);
@@ -674,7 +1010,24 @@ void SauverOptions(GtkWidget *pWidget, gpointer pData)
 	BMusique = pOptions->musique;
 	Volume = pOptions->volume;
 
-	FermerFenetre(pWidget, NULL);	//On ferme la fenêtre
+	/* On active ou on désactive la musique du menu d'après le changement d'options */
+	if(BMusique)
+	{
+		FMOD_System_PlaySound(pMoteurSon, M_MENU, pSons->music[M_MENU], true, NULL);
+		FMOD_System_GetChannel(pMoteurSon, M_MENU, &pChannelEnCours);
+		FMOD_Channel_SetVolume(pChannelEnCours, Volume/120.0);
+		FMOD_Channel_SetPaused(pChannelEnCours, false);
+	}
+	else
+	{
+		FMOD_System_GetChannel(pMoteurSon, M_MENU, &pChannelEnCours);
+		FMOD_Channel_Stop(pChannelEnCours);
+	}
+
+	/* On retire la structure Options de la liste chaînée puisqu'elle va devenir invalide de toutes façons après la fermeture de la fenêtre d'options */
+	g_slist_remove(pData, pOptions);
+
+	FermerFenetre(pWidget, NULL);	//On ferme la fenêtre des options
 }
 
 void AfficherMenu(GtkWidget *pWidget, gpointer pData)
@@ -686,7 +1039,7 @@ void ModifierOptionsToggleButton1(GtkToggleButton *pToggleButton, gpointer pData
 {
 	/* On met à jour la structure Options avec l'état du bouton */
 	int etat = gtk_toggle_button_get_active(pToggleButton);
-	Options *pOptions = pData;
+	Options *pOptions = (Options*)pData;
 
 	pOptions->musique = etat;
 }
@@ -695,7 +1048,7 @@ void ModifierOptionsToggleButton2(GtkToggleButton *pToggleButton, gpointer pData
 {
 	/* On met à jour la structure Options avec l'état du bouton */
 	int etat = gtk_toggle_button_get_active(pToggleButton);
-	Options *pOptions = pData;
+	Options *pOptions = (Options*)pData;
 
 	pOptions->sons = etat;
 }
@@ -704,7 +1057,7 @@ void ModifierOptionsToggleButton3(GtkToggleButton *pToggleButton, gpointer pData
 {
 	/* On met à jour la structure Options avec l'état du bouton */
 	int etat = gtk_toggle_button_get_active(pToggleButton);
-	Options *pOptions = pData;
+	Options *pOptions = (Options*)pData;
 
 	pOptions->fullScreen = etat;
 }
@@ -713,7 +1066,7 @@ void ModifierOptionsListe(GtkComboBox *pComboBox, gpointer pData)
 {
 	/* On met à jour la structure Options avec le choix sélectionné dans la liste */
 	int choix = gtk_combo_box_get_active(pComboBox);
-	Options *pOptions = pData;
+	Options *pOptions = (Options*)pData;
 
 	switch(choix)
 	{
@@ -752,9 +1105,17 @@ void ModifierOptionsListe(GtkComboBox *pComboBox, gpointer pData)
 gboolean ModifierOptionsRange1(GtkRange *range, GtkScrollType scroll, double valeur, gpointer pData)
 {
 	/* On met à jour la structure Options avec la valeur du curseur */
-	Options *pOptions = pData;
+	Options *pOptions = (Options*)pData;
 
-	pOptions->vies = (char)Arrondir(valeur);
+	/* Si la valeur du curseur est supérieure à 5 on la ramène à 5 */
+	if(valeur > 5)
+	{
+		pOptions->vies = 5;
+	}
+	else
+	{
+		pOptions->vies = (char)Arrondir(valeur);
+	}
 
 	return false;	//On renvoie 'false' pour propager le signal "change-value" à gtk
 }
@@ -762,9 +1123,17 @@ gboolean ModifierOptionsRange1(GtkRange *range, GtkScrollType scroll, double val
 gboolean ModifierOptionsRange2(GtkRange *range, GtkScrollType scroll, double valeur, gpointer pData)
 {
 	/* On met à jour la structure Options avec la valeur du curseur */
-	Options *pOptions = pData;
+	Options *pOptions = (Options*)pData;
 
-	pOptions->volume = (float)valeur;
+	/* Si la valeur du curseur est supérieure à 100, on la ramène à 100 */
+	if(valeur > 100)
+	{
+		pOptions->volume = 100.00;
+	}
+	else
+	{
+		pOptions->volume = (float)valeur;
+	}
 
 	return false;	//On renvoie 'false' pour propager le signal "change-value" à gtk
 }
@@ -773,11 +1142,11 @@ void Connexion(GtkWidget *pWidget, gpointer pData)
 {
 	GtkWidget *pWindow, *pEntryPseudo, *pEntryMDP, *pBoutonCO, *pBoutonGuest, *pBoutonAnnuler, *pBoutonAnnulerLabel, *pBoutonCOLabel, *pBoutonGuestLabel, *pBoxHEntries, *pBoxHButtons, *pBoxVAll;
 	GtkEntryBuffer *pBufferPseudo, *pBufferMDP;	//2 buffers pour les champs de saisie
-	GdkRGBA couleurBoutons= {0.650, 0.850, 0.925, 1}, couleurBoutonsEnfonce= {0.550, 0.655, 0.700, 1}, couleurFond= {0.610, 0.805, 0.920, 1};
+	GdkRGBA couleurBoutons= {0.650, 0.850, 0.925, 1}, couleurBoutonsEnfonce= {0.550, 0.655, 0.700, 1}, couleurFond= {0.610, 0.805, 0.920, 1};	//Couleurs
 
 	GSList *pListeElements = (GSList*)pData;	//On récupère la liste des éléments
 
-	/* On crée la fenêtre, on la centre, on lui donne sa taille */
+	/* On crée la fenêtre, on la centre, on lui donne sa taille, son titre, ... */
 	pWindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_icon_from_file(GTK_WINDOW(pWindow), "ressources/img/z.png", NULL);
 	gtk_window_set_title(GTK_WINDOW(pWindow), "Connexion");
@@ -890,7 +1259,7 @@ void ConnexionMySql(GtkWidget *pWidget, gpointer pData)
 	GdkRGBA couleurFond= {0.610, 0.805, 0.920, 1};
 
 	/* On crée une nouvelle fenêtre de dialogue */
-	GtkWidget *pWindowInfo = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(pWidget)), GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_OTHER, GTK_BUTTONS_OK, "");
+	GtkWidget *pWindowInfo = gtk_message_dialog_new(GTK_WINDOW(gtk_widget_get_toplevel(pWidget)), GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_OTHER, GTK_BUTTONS_OK, "default_message");
 
 	/* On récupère les pointeurs vers les structures Joueur et les 2 buffers */
 	Joueur *pJoueur = (Joueur*)g_list_nth_data((GList*)pData, 6);
@@ -1000,12 +1369,24 @@ void ConnexionMySql(GtkWidget *pWidget, gpointer pData)
 	g_list_remove(pData, pEntryPseudo);
 }
 
-int QuitterEchape(GtkWidget *pWidget, GdkEventKey *pEvent)
+int QuitterEchapeMain(GtkWidget *pWidget, GdkEventKey *pEvent)
 {
-	/* Cette fonction est appelée lors d'un appui sur une touche, elle vérifie qu'il s'agit de la touche Echap, puis détruit la fenêtre ce qui entraine l'apparition du dialogue voulez- vous quitter ? */
+	/* Cette fonction est appelée lors d'un appui sur une touche, elle vérifie qu'il s'agit de la touche Echap, puis appelle le dialogue voulez- vous quitter ? */
+
 	if(pEvent->keyval == GDK_KEY_Escape)
 	{
-		DestructionFenetre(pWidget, NULL);
+		FenetreConfirmationQuitter(pWidget, NULL);
+	}
+
+	return false; //On renvoie 'false' pour propager le signal à gtk
+}
+
+int QuitterEchapeCredits(GtkWidget *pWidget, GdkEventKey *pEvent, gpointer pData)
+{
+	/* Cette fonction est appelée lors d'un appui sur une touche, elle vérifie qu'il s'agit de la touche Echap, puis détruit la fenêtre de crédit */
+	if(pEvent->keyval == GDK_KEY_Escape)
+	{
+		FermerCredit(pWidget, NULL, pData);
 	}
 
 	return false; //On renvoie 'false' pour propager le signal à gtk
@@ -1048,7 +1429,7 @@ void ModeGuest(GtkWidget *pWidget, gpointer pData)
 	g_object_unref(pEntryMDP);
 	g_object_unref(pEntryPseudo);
 
-	/* On supprime les buffers de la liste chaînée */
+	/* On supprime les buffers de la liste chaînée car ils ne seront plus valides à la prochaine ouverture de la fenêtre de connexion */
 	g_list_remove(pData, pEntryMDP);
 	g_list_remove(pData, pEntryPseudo);
 }

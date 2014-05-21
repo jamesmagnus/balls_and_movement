@@ -14,6 +14,7 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
 #include <time.h>
 #include <SDL.h>
@@ -32,7 +33,7 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 extern int TailleBloc, TailleBoule, TailleMissileH, TailleMissileW, BMusique, BSons;		//Lien vers les variables globales déclarées dans main.c
 extern double Volume, Hauteur, Largeur;
 
-int Editeur (SDL_Renderer *pMoteurRendu, Sprite images[], FMOD_SYSTEM *pMoteurSon, Sons *pSons, TTF_Font *polices[], Joueur *pJoueur)
+int Editeur (SDL_Renderer *pMoteurRendu, Sprite images[], FMOD_SYSTEM *pMoteurSon, Sons *pSons, TTF_Font *polices[], Joueur *pJoueur, gpointer *pData)
 {
 	Map *pMap = NULL;	//Pointeur sur une structure Map
 	int continuer=true, etat=0, objetPris=AUCUN_BONUS, differenceFPS=0;
@@ -40,11 +41,12 @@ int Editeur (SDL_Renderer *pMoteurRendu, Sprite images[], FMOD_SYSTEM *pMoteurSo
 	ClavierSouris entrees;	//Structure pour gérer les entrées clavier et souris
 	FMOD_CHANNEL *pChannelEnCours=NULL;
 	SDL_Event evenementPoubelle;	//Une structure pour prendre les évènements dans la file d'attente sans les utiliser (purge de la file des évènements)
+	NomBooleen nomNiveau= {"", false};
 
 	EntreesZero(&entrees);	//On initialise la structure des entrées
 
 	/* On définit les positions et les tailles des images, on charge une map vierge et on crée les boutons pour ajouter des missiles */
-	pMap = InitialisationEditeur(pMoteurRendu, images, polices, pJoueur);
+	pMap = InitialisationEditeur(pMoteurRendu, images, polices, pJoueur, &etat);
 
 	while(SDL_PollEvent(&evenementPoubelle));	//On purge la file d'attente des évènements (si des touches ont été appuyées pendant le chargement)
 
@@ -155,6 +157,15 @@ int Editeur (SDL_Renderer *pMoteurRendu, Sprite images[], FMOD_SYSTEM *pMoteurSo
 			}
 			else	//Sinon si la map est correcte
 			{
+				/* On demande son nom en injectant dans le thread principal GTK, la fonction DemandeNomNiveau, tant que elle n'a pas changé le titre du niveau, on fait une boucle infinie dans l'éditeur pour attendre */
+				strcpy(nomNiveau.nom, pMap->titre);
+				g_idle_add((GSourceFunc)DemandeNomNiveau, &nomNiveau);
+
+				while(!nomNiveau.poursuite);
+
+				/* Ensuite on copie le nom entré dans la structure Map */
+				sprintf(pMap->titre, nomNiveau.nom);
+
 				if(BSons)	//Petit son de sauvegarde
 				{
 					FMOD_System_PlaySound(pMoteurSon, S_SAVE+10, pSons->bruits[S_SAVE], true, NULL);
@@ -163,8 +174,8 @@ int Editeur (SDL_Renderer *pMoteurRendu, Sprite images[], FMOD_SYSTEM *pMoteurSo
 					FMOD_Channel_SetPaused(pChannelEnCours, false);
 				}
 
-				/* On enregistre dans le fichier level.lvl */
-				if(SauvegardeNiveau(pMap, images) == -1)
+				/* On enregistre dans le fichier levelUser.lvl */
+				if(SauvegardeNiveau(pMap, images, pJoueur) == -1)
 				{
 					/* Message erreur */
 					MessageInformations("Erreur lors de la sauvegarde !", polices, pMoteurRendu, &entrees);
@@ -194,15 +205,17 @@ int Editeur (SDL_Renderer *pMoteurRendu, Sprite images[], FMOD_SYSTEM *pMoteurSo
 		FMOD_Channel_SetPaused(pChannelEnCours, false);
 	}
 
-	return 0;	// On retourne au menu
+	/* On remet -1 en valeur de niveau à éditer pour éviter que lors d'un futur clic sur le bouton ajout de niveau, on ne charge un niveau au lieu d'en créer un nouveau */
+	pJoueur->niveauEditeur = -1;
+
+	return 0;	// On retourne au menu principal
 }
 
-Map* InitialisationEditeur (SDL_Renderer *pMoteurRendu, Sprite images[], TTF_Font *polices[], Joueur *pJoueur)
+Map* InitialisationEditeur (SDL_Renderer *pMoteurRendu, Sprite images[], TTF_Font *polices[], Joueur *pJoueur, int *pEtat)
 {
 	Map* pMap = NULL;	//Pointeur vers une structure Map
 	SDL_Surface *pSurfMissileH, *pSurfMissileV;		//Pointeurs vers des surfaces
 	SDL_Color blancOpaque = {255, 255, 255, SDL_ALPHA_OPAQUE};
-	int etatNiveau;
 
 	/* On crée une nouvelle surface avec le texte spécifié, on met à la bonne taille, on la transforme en texture et on libère cette surface */
 	pSurfMissileH = TTF_RenderText_Blended(polices[POLICE_SNICKY], "Ajout missile H", blancOpaque);
@@ -216,9 +229,10 @@ Map* InitialisationEditeur (SDL_Renderer *pMoteurRendu, Sprite images[], TTF_Fon
 	TTF_SizeText(polices[POLICE_SNICKY], "Ajout missile V", &images[AJOUTER_MISSILE_V].position[0].w, &images[AJOUTER_MISSILE_V].position[0].h);
 	SDL_FreeSurface(pSurfMissileV);
 
-	pMap = ChargementNiveau(pMoteurRendu, pJoueur, -1, &etatNiveau);	//On charge une map en mode 'éditeur' donc vierge
+	/* On charge une map en mode 'éditeur' donc vierge ou alors on charge un niveau pour édition */
+	pMap = ChargementNiveau(pMoteurRendu, pJoueur, pJoueur->niveauEditeur, pEtat);
 
-	InitialisationPositions(images, pJoueur, -1);		//On initialise les positions et les tailles des images en mode 'éditeur'
+	InitialisationPositions(images, pJoueur, pJoueur->niveauEditeur);		//On initialise les positions et les tailles des images
 
 	return pMap;	//On renvoie l'adresse de la map
 }
@@ -227,8 +241,8 @@ int AffichageEditeur(SDL_Renderer *pMoteurRendu, Sprite images[], Map* pMap, Cla
 {
 	/* Cette fonction s'occupe de l'affichage */
 
-	int i=0;               //Variables de comptage
-	SDL_Point pointOrigine={0, 0};	//Coordonnées d'un point pour faire les rotations
+	int i=0;     //Compteur
+	SDL_Point pointOrigine= {0, 0};	//Coordonnées d'un point (0;0) pour faire les rotations
 
 	/* On efface l'écran avec du noir */
 	SDL_SetRenderDrawColor(pMoteurRendu, 0, 0, 0, SDL_ALPHA_OPAQUE);
@@ -258,6 +272,7 @@ int AffichageEditeur(SDL_Renderer *pMoteurRendu, Sprite images[], Map* pMap, Cla
 	{
 		SDL_RenderCopy(pMoteurRendu, images[MISSILE].pTextures[0], NULL, &images[MISSILE].position[i]);
 	}
+
 	/* Les 5 derniers sont horizontales donc rotation de 90° */
 	for (i=5; i<10; i++)
 	{
@@ -311,7 +326,7 @@ int VerifierEmplacements(Sprite images[], Map *pMap)
 	/* Cette fonction vérifie les collisions et les alignements interdits, comme une boule dans le sol ou sur la trajectoire d'un missile */
 
 	int i=0, j=0;
-	Collision collision={COLL_NONE, 0};	//Structure pour retenir les collisions et l'indice du missile incriminé s'il y en a un
+	Collision collision= {COLL_NONE, 0};	//Structure pour retenir les collisions et l'indice du missile incriminé s'il y en a un
 
 	/* On teste chaque boule une par une */
 	for(i=BOULE_BLEUE; i<=BOULE_VERTE; i++)
@@ -320,22 +335,22 @@ int VerifierEmplacements(Sprite images[], Map *pMap)
 		for(j=0; j<5; j++)
 		{
 			if(images[i].position[0].x + images[i].position[0].w > images[MISSILE].position[j].x && images[i].position[0].x < images[MISSILE].position[j].x + images[MISSILE].position[j].w)
-		{
-			return -1;
-		}
+			{
+				return -1;
+			}
 		}
 
 		/* On fait la même chose avec chaque missile H */
 		for(j=5; j<10; j++)
 		{
 			if(images[i].position[0].y + images[i].position[0].h > images[MISSILE].position[j].y && images[i].position[0].y < images[MISSILE].position[j].y + images[MISSILE].position[j].w)
-		{
-			return -1;
-		}
+			{
+				return -1;
+			}
 		}
 
-	/* On vérifie si la boule que l'on teste est en collision avec quoi que ce soit */
-	CollisionDetect(images, i, pMap, &collision);
+		/* On vérifie si la boule que l'on teste est en collision avec quoi que ce soit */
+		CollisionDetect(images, i, pMap, &collision);
 
 		if(collision.etatColl & ~COLL_NONE)	//Si un seul bit est à 1 c'est qu'il y a une collision
 		{
@@ -344,43 +359,120 @@ int VerifierEmplacements(Sprite images[], Map *pMap)
 	}
 
 	/* On vérifie ensuite les collisions pour les 2 vortex */
-		CollisionDetect(images, VORTEX_BLEU, pMap, &collision);
+	CollisionDetect(images, VORTEX_BLEU, pMap, &collision);
 
-		if(collision.etatColl & ~COLL_NONE)
-		{
-			return -3;
-		}
+	if(collision.etatColl & ~COLL_NONE)
+	{
+		return -3;
+	}
 
-		CollisionDetect(images, VORTEX_VERT, pMap, &collision);
+	CollisionDetect(images, VORTEX_VERT, pMap, &collision);
 
-		if(collision.etatColl & ~COLL_NONE)
-		{
-			return -4;
-		}
+	if(collision.etatColl & ~COLL_NONE)
+	{
+		return -4;
+	}
 
 	return 0;	//On renvoie 0 s'il n'y a aucun problème
 }
 
 void DeplacementObjetEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Sprite images[], ClavierSouris *pEntrees)
 {
-	int i=0;
+	int i=0,j=0;
 	static int deplacement = -1;	//On retient dans une variable statique si on a sélectionné un objet et lequel (-1 pas d'objet)
 
-	/* On s'occupe de chaque boule et des 2 vortexs l'un après l'autre, on saute les missiles */
+	/* On s'occupe de chaque boule et des 2 vortex l'un après l'autre, les missiles sont traités dans une boucle à l'intérieur de l'autre */
 	for (i=BOULE_BLEUE; i<=VORTEX_VERT; i++)
 	{
-		if(i == MISSILE)
+		if(i == MISSILE || deplacement >= 100)	//Si on s'occupe des missiles ou que l'objet sélectionné est un missile (>=100)
 		{
-			continue;	//On passe directement au prochain tour de boucle
+			/* On fait les 5 missiles V */
+			for (j=0; j<5; j++)
+			{
+				/* On regarde si on clique sur un missile ou si il y en avait déjà un sélectionné */
+				if((pEntrees->souris.touches[C_MOLETTE] && pEntrees->souris.position.x > images[MISSILE].position[j].x && pEntrees->souris.position.x < (images[MISSILE].position[j].x + images[MISSILE].position[j].w) && pEntrees->souris.position.y > images[MISSILE].position[j].y && pEntrees->souris.position.y < (images[MISSILE].position[j].y + images[MISSILE].position[j].h)) || (deplacement >= 100 && deplacement < 105))
+				{
+					/* Si il n'y avait pas de déplacement en cours c'est une sélection d'objet */
+					if (deplacement == -1)
+					{
+						if(BSons)
+						{
+							FMOD_System_PlaySound(pMoteurSon, S_CLICK+10, pSons->bruits[S_CLICK], false, NULL);	//Bruit de clic
+						}
+
+						deplacement = 100+j;	//On retient l'indice de l'image que l'on est en train de sélectionner
+						pEntrees->souris.touches[C_MOLETTE] = false;	//On remet à zéro le clic de molette
+					}
+
+					/* Si un déplacement est en cours, un objet est déjà sélectionné, deplacement compris entre 100 et 104 ; si on fait un clic de molette on dépose alors l'image là où elle est */
+					if (deplacement >= 100 && deplacement < 105)
+					{
+						images[MISSILE].position[deplacement-100].x = pEntrees->souris.position.x - images[MISSILE].position[deplacement-100].w /2;
+						images[MISSILE].position[deplacement-100].y = pEntrees->souris.position.y - images[MISSILE].position[deplacement-100].h /2;
+
+						if (pEntrees->souris.touches[C_MOLETTE])
+						{
+							if(BSons)
+							{
+								FMOD_System_PlaySound(pMoteurSon, S_CLICK+10, pSons->bruits[S_CLICK], false, NULL);	//Bruit de clic
+							}
+
+							deplacement = -1;	//On remet déplacement à -1
+							pEntrees->souris.touches[C_MOLETTE] = false;
+						}
+					}
+				}
+			}
+
+			/* On s'occupe de même des missiles H */
+			for (j=5; j<10; j++)
+			{
+				if((pEntrees->souris.touches[C_MOLETTE] && pEntrees->souris.position.x > images[MISSILE].position[j].x - images[MISSILE].position[j].h && pEntrees->souris.position.x < images[MISSILE].position[j].x && pEntrees->souris.position.y > images[MISSILE].position[j].y && pEntrees->souris.position.y < (images[MISSILE].position[j].y + images[MISSILE].position[j].w)) || (deplacement >= 105 && deplacement < 110))
+				{
+					/* Si il n'y avait pas de déplacement en cours c'est une sélection d'objet */
+					if (deplacement == -1)
+					{
+						if(BSons)
+						{
+							FMOD_System_PlaySound(pMoteurSon, S_CLICK+10, pSons->bruits[S_CLICK], false, NULL);	//Bruit de clic
+						}
+
+						deplacement = 100+j;	//On retient l'indice de l'image que l'on est en train de sélectionner
+						pEntrees->souris.touches[C_MOLETTE] = false;	//On remet à zéro le clic de molette
+					}
+
+					/* Si un déplacement est en cours, un objet est déjà sélectionné, deplacement compris entre 105 et 109 ; si on fait un clic de molette on dépose alors l'image là où elle est */
+					if (deplacement >= 105 && deplacement < 110)
+					{
+						images[MISSILE].position[deplacement-100].x = pEntrees->souris.position.x + images[MISSILE].position[deplacement-100].h /2;
+						images[MISSILE].position[deplacement-100].y = pEntrees->souris.position.y - images[MISSILE].position[deplacement-100].w /2;
+
+						if (pEntrees->souris.touches[C_MOLETTE])
+						{
+							if(BSons)
+							{
+								FMOD_System_PlaySound(pMoteurSon, S_CLICK+10, pSons->bruits[S_CLICK], false, NULL);	//Bruit de clic
+							}
+
+							deplacement = -1;	//On remet déplacement à -1
+							pEntrees->souris.touches[C_MOLETTE] = false;
+						}
+					}
+				}
+			}
 		}
 
 		/* On regarde si la souris est sur l'image et si on appuie sur la molette OU si un déplacement est en cours */
-		if((pEntrees->souris.touches[C_MOLETTE] && pEntrees->souris.position.x > images[i].position[0].x && pEntrees->souris.position.x < (images[i].position[0].x + images[i].position[0].w) && pEntrees->souris.position.y > images[i].position[0].y && pEntrees->souris.position.y < (images[i].position[0].y + images[i].position[0].h)) || deplacement != -1)
+		if((pEntrees->souris.touches[C_MOLETTE] && pEntrees->souris.position.x > images[i].position[0].x && pEntrees->souris.position.x < (images[i].position[0].x + images[i].position[0].w) && pEntrees->souris.position.y > images[i].position[0].y && pEntrees->souris.position.y < (images[i].position[0].y + images[i].position[0].h)) || (deplacement != -1 && deplacement < 100))
 		{
 			/* Si il n'y avait pas de déplacement en cours c'est une sélection d'objet */
 			if (deplacement == -1)
 			{
-				FMOD_System_PlaySound(pMoteurSon, S_CLICK+10, pSons->bruits[S_CLICK], false, NULL);	//Bruit de clic
+				if(BSons)
+				{
+					FMOD_System_PlaySound(pMoteurSon, S_CLICK+10, pSons->bruits[S_CLICK], false, NULL);	//Bruit de clic
+				}
+
 				deplacement = i;	//On retient l'indice de l'image que l'on est en train de sélectionner
 				pEntrees->souris.touches[C_MOLETTE] = false;	//On remet à zéro le clic de molette
 			}
@@ -389,11 +481,15 @@ void DeplacementObjetEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Sprite images
 			images[deplacement].position[0].x = pEntrees->souris.position.x - images[deplacement].position[0].w /2;
 			images[deplacement].position[0].y = pEntrees->souris.position.y - images[deplacement].position[0].h /2;
 
-	/* Si un déplacement est en cours, un objet est déjà sélectionné, deplacement != -1 ; si on fait un clic de molette on dépose alors l'image là où elle est */
-			if (deplacement != -1 && pEntrees->souris.touches[C_MOLETTE])
+			/* Si un déplacement est en cours, un objet est déjà sélectionné, deplacement != -1 ; si on fait un clic de molette on dépose alors l'image là où elle est */
+			if (deplacement != -1 && deplacement < 100 && pEntrees->souris.touches[C_MOLETTE])
 			{
-				FMOD_System_PlaySound(pMoteurSon, S_CLICK+10, pSons->bruits[S_CLICK], false, NULL);
-				deplacement = -1;
+				if(BSons)
+				{
+					FMOD_System_PlaySound(pMoteurSon, S_CLICK+10, pSons->bruits[S_CLICK], false, NULL);	//Bruit de clic
+				}
+
+				deplacement = -1;	//On remet déplacement à -1
 				pEntrees->souris.touches[C_MOLETTE] = false;
 			}
 		}
@@ -443,23 +539,27 @@ void MiseAjourMapEtBonusEditeur(ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon
 		}
 
 		/* Maintenant on s'occupe de sélectionner un bonus dans le cadre des bonus */
-	if(pEntrees->clavier[SHIFT] && pEntrees->souris.touches[C_GAUCHE])	//Si on appuie sur SHIFT et que l'on fait un clic gauche
-	{
-		/* On va balayer tous les bonus (3 lignes avec i et 9 bonus par ligne avec j), k donne le rang du bonus (de 1 jusqu'à 18) */
-		for (k=1, i=0; i<2; i++)
+		if(pEntrees->clavier[SHIFT] && pEntrees->souris.touches[C_GAUCHE])	//Si on appuie sur SHIFT et que l'on fait un clic gauche
 		{
-			for (j=0; j<9; j++, k++)
+			/* On va balayer tous les bonus (3 lignes avec i et 9 bonus par ligne avec j), k donne le rang du bonus (de 1 jusqu'à 18) */
+			for (k=1, i=0; i<2; i++)
 			{
-				/* On regarde si la souris est sur le bonus actuel */
-				if(pEntrees->souris.position.x > 0.075*Largeur*(double)j +0.081*Largeur && pEntrees->souris.position.x < 0.075*Largeur*(double)(j+1) +0.081*Largeur && pEntrees->souris.position.y > 0.075*Hauteur*(double)i +0.83*Hauteur && pEntrees->souris.position.y < 0.075*Largeur*(double)(i+1) +0.83*Hauteur)
+				for (j=0; j<9; j++, k++)
 				{
-					FMOD_System_PlaySound(pMoteurSon, S_CLICK+10, pSons->bruits[S_CLICK], false, NULL);	//Bruit de clic
-					*pDiaPris = k;	//Le bonus sélectionné est retenu
-					pEntrees->souris.touches[C_GAUCHE] = false;	//Le clic gauche est désactivé pour éviter que le bonus ne soit déposé instantanément
+					/* On regarde si la souris est sur le bonus actuel */
+					if(pEntrees->souris.position.x > 0.075*Largeur*(double)j +0.081*Largeur && pEntrees->souris.position.x < 0.075*Largeur*(double)(j+1) +0.081*Largeur && pEntrees->souris.position.y > 0.075*Hauteur*(double)i +0.83*Hauteur && pEntrees->souris.position.y < 0.075*Largeur*(double)(i+1) +0.83*Hauteur)
+					{
+						if(BSons)
+						{
+							FMOD_System_PlaySound(pMoteurSon, S_CLICK+10, pSons->bruits[S_CLICK], false, NULL);	//Bruit de clic
+						}
+
+						*pDiaPris = k;	//Le bonus sélectionné est retenu
+						pEntrees->souris.touches[C_GAUCHE] = false;	//Le clic gauche est désactivé pour éviter que le bonus ne soit déposé instantanément
+					}
 				}
 			}
 		}
-	}
 	}
 }
 
@@ -472,7 +572,11 @@ void MiseAJourMapMissileEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, ClavierSou
 	{
 		if(pEntrees->souris.position.y > images[AJOUTER_MISSILE_H].position[0].y && pEntrees->souris.position.y < images[AJOUTER_MISSILE_H].position[0].y + images[AJOUTER_MISSILE_H].position[0].h)
 		{
-			FMOD_System_PlaySound(pMoteurSon, S_CLICK+10, pSons->bruits[S_CLICK], false, NULL);	//Bruit de clic
+			if(BSons)
+			{
+				FMOD_System_PlaySound(pMoteurSon, S_CLICK+10, pSons->bruits[S_CLICK], false, NULL);	//Bruit de clic
+			}
+
 			*pMissilePris=101;	//On sélectionne un missile H
 			pEntrees->souris.touches[C_MOLETTE] = false;	//On désactive le clic de molette pour éviter que le missile ne soit déposé instantanément
 		}
@@ -483,7 +587,11 @@ void MiseAJourMapMissileEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, ClavierSou
 	{
 		if(pEntrees->souris.position.y > images[AJOUTER_MISSILE_V].position[0].y && pEntrees->souris.position.y < images[AJOUTER_MISSILE_V].position[0].y + images[AJOUTER_MISSILE_V].position[0].h)
 		{
-			FMOD_System_PlaySound(pMoteurSon, S_CLICK+10, pSons->bruits[S_CLICK], false, NULL);	//Bruit de clic
+			if(BSons)
+			{
+				FMOD_System_PlaySound(pMoteurSon, S_CLICK+10, pSons->bruits[S_CLICK], false, NULL);	//Bruit de clic
+			}
+
 			*pMissilePris=100;	//On sélectionne un missile V
 			pEntrees->souris.touches[C_MOLETTE] = false;	//On désactive le clic de molette
 		}
@@ -542,7 +650,11 @@ void MiseAJourMapMissileEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, ClavierSou
 			break;
 		}
 
-		FMOD_System_PlaySound(pMoteurSon, S_CLICK+10, pSons->bruits[S_CLICK], false, NULL);	//Bruit de clic
+		if(BSons)
+		{
+			FMOD_System_PlaySound(pMoteurSon, S_CLICK+10, pSons->bruits[S_CLICK], false, NULL);	//Bruit de clic
+		}
+
 		*pMissilePris = 0;	//Plus de missile sélectionné
 	}
 }
@@ -631,7 +743,7 @@ void AffichageBoxEditeur(SDL_Renderer *pMoteurRendu, ClavierSouris *pEntrees)
 
 void AffichageObjetCurseurEditeur(SDL_Renderer *pMoteurRendu, ClavierSouris *pEntrees, Sprite images[], int objetPris)
 {
-	SDL_Point pointOrigine={0, 0};	//Coordonnées du point d'origine de l'image pour faire la rotation
+	SDL_Point pointOrigine= {0, 0};	//Coordonnées du point d'origine de l'image pour faire la rotation
 	int angleCurseur=335;
 
 	/* On définit les coordonnées des différentes images que l'on pourrait avoir à coller sur celle de la souris */

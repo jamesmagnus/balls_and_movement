@@ -67,7 +67,7 @@ typedef struct GdkImages	//Structure qui contient les 4 pixbufs, c'est à dire le
 /* Enumérations pour ne pas avoir à retenir les indices des tableaux */
 enum {BOULE_BLEUE, BOULE_MAGENTA, BOULE_VERTE, MISSILE, VORTEX_BLEU, VORTEX_VERT, GEMMES, CURSEUR, VIE, FOND_TEXTES, AJOUTER_MISSILE_H, AJOUTER_MISSILE_V};
 
-enum{DIA_VERTCLAIR=1, DIA_NOIR, DIA_TURQUOISE, DIA_JAUNE, DIA_ROSE, DIA_ROUGE, DIA_ORANGE, DIA_BLEUCLAIR, DIA_BLEUMARINE, DIA_VERT, DIA_MARRON, DIA_BLEU, DIA_ROSECLAIR, DIA_VIOLET, DIA_FUSHIA, DIA_MARRONCLAIR, DIA_GRIS, DIA_BLEUFONCE};
+enum {DIA_VERTCLAIR=1, DIA_NOIR, DIA_TURQUOISE, DIA_JAUNE, DIA_ROSE, DIA_ROUGE, DIA_ORANGE, DIA_BLEUCLAIR, DIA_BLEUMARINE, DIA_VERT, DIA_MARRON, DIA_BLEU, DIA_ROSECLAIR, DIA_VIOLET, DIA_FUSHIA, DIA_MARRONCLAIR, DIA_GRIS, DIA_BLEUFONCE};
 
 enum {SOL_PETITE_PENTE_D, SOL_GRANDE_PENTE_D, VIDE, SOL_GRANDE_PENTE_G, SOL_PETITE_PENTE_G, SOL_COIN_D_1, SOL_COIN_D_2, SOL_NORMAL, SOL_COIN_G_1, SOL_COIN_G_2, SOL_PLEIN_1, SOL_PLEIN_2, SOL_PLEIN_3, SOL_PLEIN_4, SOL_PLEIN_5, SOL_FIN_G, SOL_FIN_D, SOL_PLEIN_UNI};
 
@@ -89,12 +89,14 @@ enum {JEU_FIN_ERREUR_CHARGEMENT=-1, JEU_FIN=0, JEU_EN_COURS=1, JEU_FIN_GAGNE=2};
 
 enum {MORT_BORDURE=-3, GAGNE=-2, RIEN=-1};
 
+enum {NUMERO_NIVEAU, NOM_NIVEAU, APERCU_NIVEAU};
+
 /* Prototypes des fonctions */
+void CreerBoites(GtkWidget **pWindow, GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWidget **pBoutonOptions, GtkWidget **pBoutonEditeur, GtkWidget **pBoutonCredits, GtkWidget **pBoutonQuitter, GtkWidget **pZoneDessinV1, GtkWidget **pZoneDessinV2, GtkWidget **pTitre, GtkWidget **pZoneDessin);
 void CreerBoutons(GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWidget **pBoutonCredits, GtkWidget **pBoutonOptions, GtkWidget **pBoutonEditeur, GtkWidget **pBoutonQuitter, GSList *pListeElements);
 void CreerFenetre(GtkWidget **pWindow);
 void CreerTitre(GtkWidget **pTitre);
 void CreerZonesDessin(GtkWidget **pZoneDessin, GtkWidget **pZoneDessinV1, GtkWidget **pZoneDessinV2, GdkImages *pix);
-void CreerBoites(GtkWidget **pWindow, GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWidget **pBoutonOptions, GtkWidget **pBoutonEditeur, GtkWidget **pBoutonCredits, GtkWidget **pBoutonQuitter, GtkWidget **pZoneDessinV1, GtkWidget **pZoneDessinV2, GtkWidget **pTitre, GtkWidget **pZoneDessin);
 void InitialiserJoueur(Joueur *pJoueur);
 void LiberationMemoireMain(GSList *pListeElements, Options *pOptions, FILE *pFichierErreur, Sons *pSons, FMOD_SYSTEM *pMoteurSon, GdkImages *pPix);
 

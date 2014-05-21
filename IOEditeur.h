@@ -14,7 +14,9 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 #define IOEDITEUR_H_INCLUDED	//Protection contre les inclusons infinies
 
 /* Prototypes des fonctions */
-int SauvegardeNiveau(Map* pMap, Sprite images[]);
+gboolean DemandeNomNiveau(gpointer *pData);
+void RenvoiContenuEntry(GtkWidget *pWidget, gpointer *pData);
+int SauvegardeNiveau(Map* pMap, Sprite images[], Joueur *pJoueur);
 
 #endif // IOEDITEUR_H_INCLUDED
 

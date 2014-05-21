@@ -46,12 +46,14 @@ int LectureOptions(char options[][50])
 			caractere = fgetc(pFichierOptions); //On lit un caractère
 			options[j][i] = caractere;  //On le met dans le tableau
 			i++;    //Caractère suivant dans le tableau
-		}while (caractere != '\n' && caractere != EOF);  //Tant qu'il n'y a pas de retour à la ligne ou de fin de fichier
+		}
+		while (caractere != '\n' && caractere != EOF);   //Tant qu'il n'y a pas de retour à la ligne ou de fin de fichier
 
 		options[j][i-1] = '\0';     //On place le caractère de fin de chaîne à la place du retour à la ligne
 		j++;      //Ligne suivante dans le tableau
 		i=0;	//On revient au début de la ligne dans le tableau
-	}while (caractere != EOF);       //Tant qu'on est pas à la fin du fichier
+	}
+	while (caractere != EOF);        //Tant qu'on est pas à la fin du fichier
 
 	fclose(pFichierOptions);        //On ferme le fichier
 

@@ -56,7 +56,14 @@ typedef struct Map		//Structure pour la map d'un niveau
 	int nbtiles_largeur_monde, nbtiles_hauteur_monde;
 	int **plan;
 	int **planObjets;
+	char titre[50];
 } Map;
+
+typedef struct NomBooleen
+{
+	char nom[50];
+	unsigned char poursuite;
+} NomBooleen;
 
 typedef struct Sons		//Structure pour les sons du jeu
 {
@@ -78,11 +85,12 @@ typedef struct Collision		//Structure pour gérer les collisions
 
 typedef struct Joueur	//Structure avec les informations relatives au joueur
 {
-	char pseudo[255];
-	char mdp[100];
 	int niveau_max;
+	int niveauEditeur;
 	int connexion;
 	int mode;
+	char pseudo[255];
+	char mdp[100];
 	char autre[9000];
 } Joueur;
 
@@ -90,25 +98,25 @@ typedef struct InfoDeJeu	//Structure avec les infos de la partie
 {
 	char vies;
 	char viesInitiales;
-	long score;
 	int niveau;
 	unsigned int compteurTemps;
 	unsigned int bonus;
+	long score;
 } InfoDeJeu;
 
 /* Prototypes des fonctions */
-int Initialisation(SDL_Renderer **ppMoteurRendu, FILE *pFichierErreur, SDL_Window **ppFenetre, Options *pOptions);
-int Chargements (Sprite images[], SDL_Renderer *pMoteurRendu, TTF_Font *polices[], Animation anim[]);
-int GestionEvenements(ClavierSouris *entrees);
-int ChargementTextures(SDL_Renderer *pMoteurRendu, Sprite images[]);
-int DestructionSurfaces(SDL_Surface *sImages[]);
-int ChargementPolices(TTF_Font *polices[]);
-int ChargementMusic (Sons *pSons, FMOD_SYSTEM *pMoteurSon);
-int InitialisationSon(FMOD_SYSTEM **ppMoteurSon, FILE *pFichierErreur, Sons *pSons);
-Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level, int *pEtatNiveau);
-int DestructionMap(Map *pMap);
-void EntreesZero(ClavierSouris *pEntrees);
 int ChargementAnimations(SDL_Renderer *pMoteurRendu, Animation anim[]);
+int ChargementMusic (Sons *pSons, FMOD_SYSTEM *pMoteurSon);
+Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level, int *pEtatNiveau);
+int ChargementPolices(TTF_Font *polices[]);
+int Chargements (Sprite images[], SDL_Renderer *pMoteurRendu, TTF_Font *polices[], Animation anim[]);
+int ChargementTextures(SDL_Renderer *pMoteurRendu, Sprite images[]);
+int DestructionMap(Map *pMap);
+int DestructionSurfaces(SDL_Surface *sImages[]);
+void EntreesZero(ClavierSouris *pEntrees);
+int GestionEvenements(ClavierSouris *entrees);
+int Initialisation(SDL_Renderer **ppMoteurRendu, FILE *pFichierErreur, SDL_Window **ppFenetre, Options *pOptions);
+int InitialisationSon(FMOD_SYSTEM **ppMoteurSon, FILE *pFichierErreur, Sons *pSons);
 int MessageInformations(const char messageInfos[], TTF_Font *polices[], SDL_Renderer *pMoteurRendu, ClavierSouris *pEntrees);
 int VerificationMD5(char empreinte[], char nomFichier[]);
 

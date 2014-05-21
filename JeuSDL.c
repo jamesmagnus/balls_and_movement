@@ -36,7 +36,7 @@ extern int TailleBloc, TailleBoule, TailleMissileH, TailleMissileW, BMusique, BS
 extern double Volume, Hauteur, Largeur;
 extern InfoDeJeu infos;
 
-int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur)
+int LancerJeu(gpointer *pData)
 {
 	/* Cette fonction va appeler les fonctions d'initialisations de la SDL et lancer le jeu ou l'éditeur */
 
@@ -44,7 +44,7 @@ int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur)
 	SDL_Window *pFenetre = NULL;        //Pointeur sur la fenêtre
 	FMOD_CHANNEL *channelEnCours = NULL;    //Pour le contrôle des différents canaux audios
 
-	Sprite images[50] = {{NULL}, {0}};   //Tableau des images (textures + positions)
+	Sprite images[50] = {{NULL}, {0,0}};   //Tableau des images (textures + positions)
 	TTF_Font *polices[10] = {NULL};		//Tableau des polices
 
 	Options *pOptions = NULL;	//Pointeur sur une structure Options
@@ -59,17 +59,26 @@ int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur)
 
 	int erreur=0;	//Code d'erreur
 
+	Joueur *pJoueur = (Joueur *)g_slist_nth_data((GSList*)pData, 6);	//On récupère le pointeur vers la structure Joueur dans la liste chaînée
+	Sons *pSons = (Sons*)g_slist_nth_data((GSList*)pData, 4);		//De même avec celui vers la structure Sons
+	FMOD_SYSTEM *pMoteurSon = (FMOD_SYSTEM *)g_slist_nth_data((GSList*)pData, 3);	//De même avec celui vers la structure FMOD_SYSTEM
+
+	if(pFichierErreur == NULL)	//Vérification
+	{
+		exit(EXIT_FAILURE);
+	}
+
 	/* On lit les options et on remplit la structure */
 	LectureOptions(options);
 	pOptions = DecouperOptions(options);
 
 	Initialisation(&pMoteurRendu, pFichierErreur, &pFenetre, pOptions);     //Initialisation des principaux éléments (SDL, fenêtre, moteur de rendu)
 
+	FMOD_System_GetChannel(pMoteurSon, M_MENU, &channelEnCours);	//On met en pause la musique du menu
+	FMOD_Channel_SetPaused(channelEnCours, true);
+
 	if(BMusique)	//S'il y a de la musique
 	{
-		FMOD_System_GetChannel(pMoteurSon, M_MENU, &channelEnCours);	//On met en pause la musique du menu
-		FMOD_Channel_SetPaused(channelEnCours, true);
-
 		FMOD_System_PlaySound(pMoteurSon, M_LOAD, pSons->music[M_LOAD], true, NULL);        // On lit la musique de chargement
 		FMOD_System_GetChannel(pMoteurSon, M_LOAD, &channelEnCours);
 		FMOD_Channel_SetVolume(channelEnCours, Volume/100.0);
@@ -78,6 +87,7 @@ int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur)
 
 	/* On charge l'image de chargement et on vérifie */
 	surf = IMG_Load("ressources/img/load.png");
+
 	if (surf == NULL)
 	{
 		fprintf(pFichierErreur, "Erreur: impossible d'ouvrir le fichier ressources/img/load.png");
@@ -137,19 +147,19 @@ int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur)
 	if (pJoueur->mode == MODE_CAMPAGNE)
 	{
 		InitialiserInfos(pOptions, pJoueur);	//On définit les infos sur la partie en cours
-		erreur = Boucle_principale(pJoueur, images, anim, pMoteurRendu, pMoteurSon, pSons, polices);    //Boucle du jeu
+		erreur = BouclePrincipale(pJoueur, images, anim, pMoteurRendu, pMoteurSon, pSons, polices);    //Boucle du jeu
 
 		if(erreur == JEU_FIN_ERREUR_CHARGEMENT)
 		{
 			MessageInformations("Erreur lors du chargement d'un niveau, consultez le fichier erreurs.txt", polices, pMoteurRendu, NULL);
 		}
 
-		SauverMySql(pJoueur);
+		SauverMySql(pJoueur);	//On sauvegarde l'avancée du joueur
 	}
 	else if(pJoueur->mode == MODE_PERSO)
 	{
 		InitialiserInfos(pOptions, pJoueur);	//On définit les infos sur la partie en cours
-		erreur = Boucle_principale(pJoueur, images, anim, pMoteurRendu, pMoteurSon, pSons, polices);    //Boucle du jeu
+		erreur = BouclePrincipale(pJoueur, images, anim, pMoteurRendu, pMoteurSon, pSons, polices);    //Boucle du jeu
 
 		if(erreur == JEU_FIN_ERREUR_CHARGEMENT)
 		{
@@ -158,7 +168,12 @@ int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur)
 	}
 	else if (pJoueur->mode == MODE_EDITEUR)
 	{
-		Editeur(pMoteurRendu, images, pMoteurSon, pSons, polices, pJoueur);	//On lance la boucle de l'éditeur
+		erreur = Editeur(pMoteurRendu, images, pMoteurSon, pSons, polices, pJoueur, pData);	//On lance la boucle de l'éditeur
+
+		if(erreur == JEU_FIN_ERREUR_CHARGEMENT)
+		{
+			MessageInformations("Erreur lors du chargement d'un niveau, consultez le fichier erreurs.txt", polices, pMoteurRendu, NULL);
+		}
 	}
 
 	/* Libération de la mémoire */

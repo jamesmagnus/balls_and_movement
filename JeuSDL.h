@@ -14,10 +14,10 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 #define JEU_SDL_H_INCLUDED
 
 /* Prototypes des fonctions */
-int LancerJeu(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Joueur *pJoueur);
+void InitialiserInfos(Options *pOptions, Joueur *pJoueur);
+int LancerJeu(gpointer *pData);
 void LibererMemoire(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[], TTF_Font *polices[], SDL_Window *pFenetre, Options *pOptions);
 int SauverMySql(Joueur *pJoueur);
-void InitialiserInfos(Options *pOptions, Joueur *pJoueur);
 
 #endif // JEU_SDL_H_INCLUDED
 

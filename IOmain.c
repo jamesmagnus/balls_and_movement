@@ -155,54 +155,63 @@ int ChargementTextures(SDL_Renderer *pMoteurRendu, Sprite images[])
 
 	/* On charge toutes les images comme des surfaces et on vérifie que le chargement a réussi */
 	sImages[CURSEUR] = IMG_Load("ressources/img/curseur.png");
+
 	if(sImages[CURSEUR] == NULL)
 	{
 		return -1;
 	}
 
 	sImages[BOULE_BLEUE] = IMG_Load("ressources/img/boule_bleue.png");
+
 	if(sImages[BOULE_BLEUE] == NULL)
 	{
 		return -1;
 	}
 
 	sImages[BOULE_MAGENTA] = IMG_Load("ressources/img/boule_magenta.png");
+
 	if(sImages[BOULE_MAGENTA] == NULL)
 	{
 		return -1;
 	}
 
 	sImages[BOULE_VERTE] = IMG_Load("ressources/img/boule_verte.png");
+
 	if(sImages[BOULE_VERTE] == NULL)
 	{
 		return -1;
 	}
 
 	sImages[MISSILE] = IMG_Load("ressources/img/missile.png");
+
 	if(sImages[MISSILE] == NULL)
 	{
 		return -1;
 	}
 
 	sImages[VORTEX_BLEU] = IMG_Load("ressources/img/vortexBleu.png");
+
 	if (sImages[VORTEX_BLEU] == NULL)
 	{
 		return -1;
 	}
 
 	sImages[VORTEX_VERT] = IMG_Load("ressources/img/vortexVert.png");
+
 	if (sImages[VORTEX_VERT] == NULL)
 	{
 		return -1;
 	}
 
 	sImages[GEMMES] = IMG_Load("ressources/img/gemmes.png");
+
 	if (sImages[GEMMES] == NULL)
 	{
 		return -1;
 	}
 
 	sImages[VIE] = IMG_Load("ressources/img/heart_plein.png");
+
 	if(sImages[VIE] == NULL)
 	{
 		return -1;
@@ -210,6 +219,7 @@ int ChargementTextures(SDL_Renderer *pMoteurRendu, Sprite images[])
 
 	/* On charge le coeur vide un indice au dessus de celui plein car il n'existe pas dans l'énumération */
 	sImages[VIE+1] = IMG_Load("ressources/img/heart_vide.png");
+
 	if(sImages[VIE+1] == NULL)
 	{
 		return -1;
@@ -311,6 +321,7 @@ int GestionEvenements(ClavierSouris *entrees)
 			entrees->souris.touches[C_MOLETTE] = true;
 			break;
 		}
+
 		break;
 
 	case SDL_KEYUP:
@@ -381,6 +392,7 @@ int GestionEvenements(ClavierSouris *entrees)
 			entrees->souris.touches[C_MOLETTE] = false;
 			break;
 		}
+
 		break;
 
 	case SDL_MOUSEBUTTONDOWN:
@@ -398,6 +410,7 @@ int GestionEvenements(ClavierSouris *entrees)
 			entrees->souris.touches[C_MOLETTE] = true;
 			break;
 		}
+
 		break;
 
 	case SDL_FINGERDOWN:		//Pour les touchpad (ou les souris mac), on considère un clic de molette si c'est un clic dans la zone du milieu
@@ -425,11 +438,12 @@ int GestionEvenements(ClavierSouris *entrees)
 			entrees->souris.touches[C_MOLETTE] = false;
 			break;
 		}
+
 		break;
 
 	case SDL_FINGERUP:
-			entrees->souris.touches[C_MOLETTE] = false;
-			break;
+		entrees->souris.touches[C_MOLETTE] = false;
+		break;
 
 	case SDL_MOUSEMOTION:		//On prend les coordonnées de la souris si elle a bougé
 		entrees->souris.position.x = evenement.motion.x;
@@ -574,11 +588,11 @@ int DestructionSurfaces(SDL_Surface *sImages[])
 {
 	int i=0;
 
-		/* Tant que le pointeur n'est pas NULL c'est qu'il reste des surfaces */
-		while (i++, sImages[i] != NULL)
-		{
-			SDL_FreeSurface(sImages[i]);
-		}
+	/* Tant que le pointeur n'est pas NULL c'est qu'il reste des surfaces */
+	while (i++, sImages[i] != NULL)
+	{
+		SDL_FreeSurface(sImages[i]);
+	}
 
 	return 0;
 }
@@ -590,8 +604,10 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level, in
 	FILE *pFichierNiveau = NULL, *pFichierErreur = NULL;	//Deux pointeur sur des fichiers
 	char ligne[50] = "";	//Une chaîne pour lire une ligne du fichier
 	Map *pMap = NULL;		//Un pointeur vers une structure Map que l'on va allouer et remplir avec le fichier
+	char *c=NULL;
 
 	pFichierErreur = fopen("ressources/ErreursLog.txt", "a");	//On ouvre le fichier d'erreur pour écrire d'éventuelles erreurs
+
 	if(pFichierErreur == NULL)
 	{
 		*pEtatNiveau = CHARGEMENT_ERREUR;	//On place un code d'erreur dans la variable
@@ -663,9 +679,9 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level, in
 
 	/* Enfin ouvre le fichier de niveau selon le mode jeu ou éditeur */
 	/* On ouvre un fichier correct pour le mode éditeur car il faut les tailles de map par défaut */
-	if(pJoueur->mode == MODE_CAMPAGNE || pJoueur->mode == MODE_EDITEUR)
+	if(pJoueur->mode == MODE_CAMPAGNE || (pJoueur->mode == MODE_EDITEUR && level == -1))
 	{
-		if(VerificationMD5("3CB9ED8BCD9B987BBE894CAE5B9D8FAA", "ressources/level.lvl"))	//On vérifie l'empreinte md5 du fichier
+		if(VerificationMD5("9D656D35ACFF9BDC6829986F9EC14A41", "ressources/level.lvl"))	//On vérifie l'empreinte md5 du fichier
 		{
 			pFichierNiveau = fopen("ressources/level.lvl", "r");
 		}
@@ -674,9 +690,8 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level, in
 			*pEtatNiveau = CHARGEMENT_FICHIER_CORROMPU;	//On place un code d'erreur dans la variable
 			return NULL;	//On arrête car le fichier fourni n'est pas le bon
 		}
-
 	}
-	else if (pJoueur->mode == MODE_PERSO)
+	else if (pJoueur->mode == MODE_PERSO || (pJoueur->mode == MODE_EDITEUR && level != -1))	//On ouvre le fichier personnel si c'est pour une édition
 	{
 		pFichierNiveau = fopen("ressources/levelUser.lvl", "r");
 	}
@@ -701,8 +716,20 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level, in
 	/* On lit la première ligne du niveau suivant (celui que l'on veut charger) */
 	fgets(ligne, 50, pFichierNiveau);
 
-	if(strcmp(ligne, "#taille\n") == 0)	//Si elle ne contient pas #taille\n c'est qu'on est arrivé à la fin du fichier
+	if(strcmp(ligne, "#titre\n") == 0)	//Si elle ne contient pas #titre\n c'est qu'on est arrivé à la fin du fichier
 	{
+		fgets(ligne, 50, pFichierNiveau);	//On lit le titre
+		c = strstr(ligne, "\n");	//On recherche le retour à la ligne
+
+		if(c != NULL)
+		{
+			*c = '\0';	//On le fait disparaître
+		}
+
+		sprintf(pMap->titre, ligne);	//On copie le titre dans la structure
+
+		fgets(ligne, 50, pFichierNiveau);	//'#taille\n'
+
 		/* S'il y a un niveau à charger on commence par lire sa taille */
 		/* On convertie la chaîne en nombre */
 		fgets(ligne, 50, pFichierNiveau);
@@ -743,7 +770,7 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level, in
 	}
 
 	/* Maintenant on initialise les tailles et les positions de toutes les images selon si on est en mode jeu ou en mode éditeur */
-	if (pJoueur->mode == MODE_CAMPAGNE || pJoueur->mode == MODE_PERSO)
+	if (pJoueur->mode == MODE_CAMPAGNE || pJoueur->mode == MODE_PERSO || (pJoueur->mode == MODE_EDITEUR && level != -1))
 	{
 		while(strcmp(ligne, "#map\n") != 0)	//On avance dans le fichier tant qu'on a pas atteint le début de la map
 		{
@@ -771,6 +798,7 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level, in
 
 		/* On lit la ligne suivante, on vérifie que c'est bien le début des bonus */
 		fgets(ligne, 50, pFichierNiveau);
+
 		if (strcmp(ligne, "#mapObjets\n") != 0)
 		{
 			fprintf(pFichierErreur, "Erreur: level.lvl, fichier corrompu.\n");
@@ -799,7 +827,7 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level, in
 
 		fclose(pFichierNiveau);	//On ferme le fichier de niveau
 	}
-	else if(pJoueur->mode == MODE_EDITEUR)	//Si on est en mode éditeur
+	else if(pJoueur->mode == MODE_EDITEUR && level == -1)	//Si on est en mode éditeur et qu'on ajoute un niveau
 	{
 		for (i=0; i< pMap->nbtiles_largeur_monde; i++)
 		{
@@ -809,6 +837,8 @@ Map* ChargementNiveau(SDL_Renderer *pMoteurRendu, Joueur *pJoueur, int level, in
 				pMap->planObjets[i][j] = AUCUN_BONUS;
 			}
 		}
+
+		sprintf(pMap->titre, "default");	//Titre par défaut
 	}
 
 	fclose(pFichierErreur);	//On ferme le fichier d'erreur
@@ -910,7 +940,7 @@ int MessageInformations(const char messageInfos[], TTF_Font *polices[], SDL_Rend
 
 	if(pEntrees == NULL)
 	{
-/* Pas de pointeur fourni en paramètre donc on initialise la structure locale et on met son adresse dans le pointeur pour ne pas avoir à modifier le reste de la fonction */
+		/* Pas de pointeur fourni en paramètre donc on initialise la structure locale et on met son adresse dans le pointeur pour ne pas avoir à modifier le reste de la fonction */
 		EntreesZero(&entrees);
 		pEntrees = &entrees;
 	}
@@ -981,7 +1011,7 @@ int MessageInformations(const char messageInfos[], TTF_Font *polices[], SDL_Rend
 
 int VerificationMD5(char empreinte[], char nomFichier[])
 {
-/* Cette fonction permet de comparer l'empreinte md5 d'un fichier avec une connue pour vérifier qu'il n'a pas été corrompu par quelques personnes malveillantes (n'est-ce pas Julien) */
+	/* Cette fonction permet de comparer l'empreinte md5 d'un fichier avec une connue pour vérifier qu'il n'a pas été corrompu par quelques personnes malveillantes (n'est-ce pas Julien) */
 
 	FILE *pFichierATester = fopen(nomFichier, "rb");	//On ouvre le fichier en mode lecture binaire
 	md5_state_t etat;	//Structure pour le calcul md5
@@ -1002,8 +1032,9 @@ int VerificationMD5(char empreinte[], char nomFichier[])
 	{
 		nbOctetsLus = fread(buffer, 1, 32768, pFichierATester);	//On lit 1*32768 octets dans le fichier que l'on place dans le buffer
 		/* On ajoute le buffer au md5, on précise la taille des données pour le calcul (32 768 sauf au dernier tour de boucle) */
-		md5_append(&etat, buffer, nbOctetsLus);
-	}while(nbOctetsLus == 32768);	//Lorsqu'on a lu un nombre d'octet différent de 32 768 c'est que c'était la dernière partie du fichier
+		md5_append(&etat, (md5_byte_t*)buffer, nbOctetsLus);
+	}
+	while(nbOctetsLus == 32768);	//Lorsqu'on a lu un nombre d'octet différent de 32 768 c'est que c'était la dernière partie du fichier
 
 	md5_finish(&etat, md5Calcule);	//On termine le calcul md5
 	md5Calcule[16] = '\0';	//On ajoute le caractère de fin de chaîne

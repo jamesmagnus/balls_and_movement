@@ -16,19 +16,19 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 /* Structures */
 typedef struct Options		//Structure pour stocker les options
 {
+	char vies;
 	int fullScreen;
 	int musique;
 	int nbLigne;
 	int sons;
 	int largeur;
 	int hauteur;
-	char vies;
 	float volume;
 } Options;
 
 /* Prototypes des fonctions */
-int LectureOptions(char options[][50]);
 Options* DecouperOptions(char options[][50]);
+int LectureOptions(char options[][50]);
 int ValiderChangement(char options[][50]);
 
 #endif // IOOPTIONS_H_INCLUDED

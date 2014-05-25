@@ -12,7 +12,6 @@ Bibliothèques utilisées: Bibliothèques standards, SDL, SDL_image, SDL_ttf, FMOD,
 Jean-Loup BEAUSSART & Dylan GUERVILLE
 */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

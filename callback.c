@@ -9,8 +9,9 @@ Actions: C'est ici que se trouve les fonctions pour l'interface du menu, les act
 
 Bibliothèques utilisées: Bibliothèques standards, SDL, SDL_image, SDL_ttf, FMOD, GTK
 
-Jean-Loup BEAUSSART & Dylan GUERVILLE
+Jean-Loup BEAUSSART & Dylan GUERVILLE ==> une personne qui ne sert a rien
 */
+
 
 #include <stdio.h>
 #include <stdlib.h>

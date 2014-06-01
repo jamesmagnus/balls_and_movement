@@ -20,7 +20,7 @@ int AffichageEditeur(SDL_Renderer *pMoteurRendu, Sprite images[], Map* pMap, Cla
 void AffichageObjetCurseurEditeur(SDL_Renderer *pMoteurRendu, ClavierSouris *pEntrees, Sprite images[], int objetPris);
 void AmeliorationMap(Map *pMap);
 void DeplacementObjetEditeur(FMOD_SYSTEM *pMoteurSon, Sons *pSons, Sprite images[], ClavierSouris *pEntrees);
-int Editeur (SDL_Renderer *pMoteurRendu, Sprite images[], FMOD_SYSTEM *pMoteurSon, Sons *pSons, TTF_Font *polices[], Joueur *pJoueur, gpointer *pData);
+int Editeur (SDL_Renderer *pMoteurRendu, Sprite images[], FMOD_SYSTEM *pMoteurSon, Sons *pSons, TTF_Font *polices[], Joueur *pJoueur);
 Map* InitialisationEditeur (SDL_Renderer *pMoteurRendu, Sprite images[], TTF_Font *polices[], Joueur *pJoueur, int *etat);
 int MiseAJourMap (Map *pMap, Sprite images[], ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon, Sons *pSons);
 void MiseAjourMapEtBonusEditeur(ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon, Sons *pSons, Map *pMap, int *pDiaPris, int *pMissilePris);

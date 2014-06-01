@@ -20,13 +20,8 @@ int AffichageImages(SDL_Renderer *pMoteurRendu, Sprite images[], Animation anim[
 int AffichageMap(SDL_Renderer *pMoteurRendu, Map *pMap);
 int AffichageTextes(SDL_Renderer *pMoteurRendu, TTF_Font *polices[], SDL_Texture *pTextureFond);
 int AffichageVies(SDL_Renderer *pMoteurRendu, Sprite images[]);
-int Arrondir(double nombre);
 int BouclePrincipale(Joueur *pJoueur, Sprite images[], Animation anim[], SDL_Renderer *pMoteurRendu, FMOD_SYSTEM *pMoteurSon, Sons *pSons, TTF_Font *polices[]);
 void Chrono();
-unsigned int CollisionBordure (Sprite images[], int indiceImage);
-unsigned int CollisionDecor (Sprite images[], int indiceImage, Map* pMap);
-void CollisionDetect(Sprite images[], int indiceImage, Map *pMap, Collision *pCollision);
-int CollisionImage (Sprite images[], int indiceImage, Collision *pCollision);
 int DeplacementBoules(Sprite images[], Map *pMap, ClavierSouris *pEntrees, FMOD_SYSTEM *pMoteurSon, Sons *pSons);
 int DeplacementMissiles(Sprite images[], unsigned char descente[]);
 void DetectionBonus (Sprite images[], int indiceImage, Map* pMap);

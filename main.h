@@ -54,14 +54,14 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 /* Structures */
 typedef struct Coordo	//Coordonnées pour les animations du menu
 {
-	double x1, x2, x3, x4;
-	double y1, y2, y3, y4;
-	char sens1, sens2, sens3, sens4;
+    double x1, x2, x3, x4;
+    double y1, y2, y3, y4;
+    char sens1, sens2, sens3, sens4;
 } Coordo;
 
 typedef struct GdkImages	//Structure qui contient les 4 pixbufs, c'est à dire les quatres images des animations du menu
 {
-	GdkPixbuf *img[4];
+    GdkPixbuf *img[4];
 } GdkImages;
 
 /* Enumérations pour ne pas avoir à retenir les indices des tableaux */
@@ -91,14 +91,9 @@ enum {MORT_BORDURE=-3, GAGNE=-2, RIEN=-1};
 
 enum {NUMERO_NIVEAU, NOM_NIVEAU, APERCU_NIVEAU};
 
-/* Prototypes des fonctions */
-void CreerBoites(GtkWidget **pWindow, GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWidget **pBoutonOptions, GtkWidget **pBoutonEditeur, GtkWidget **pBoutonCredits, GtkWidget **pBoutonQuitter, GtkWidget **pZoneDessinV1, GtkWidget **pZoneDessinV2, GtkWidget **pTitre, GtkWidget **pZoneDessin);
-void CreerBoutons(GtkWidget **pBoutonConnexion, GtkWidget **pBoutonJouer, GtkWidget **pBoutonCredits, GtkWidget **pBoutonOptions, GtkWidget **pBoutonEditeur, GtkWidget **pBoutonQuitter, GSList *pListeElements);
-void CreerFenetre(GtkWidget **pWindow);
-void CreerTitre(GtkWidget **pTitre);
-void CreerZonesDessin(GtkWidget **pZoneDessin, GtkWidget **pZoneDessinV1, GtkWidget **pZoneDessinV2, GdkImages *pix);
+/* Prototypes des fonctions autres que main() */
+int Arrondir(double nombre);
 void InitialiserJoueur(Joueur *pJoueur);
-void LiberationMemoireMain(GSList *pListeElements, Options *pOptions, FILE *pFichierErreur, Sons *pSons, FMOD_SYSTEM *pMoteurSon, GdkImages *pPix);
 
 #endif //DEF_MAIN_H
 

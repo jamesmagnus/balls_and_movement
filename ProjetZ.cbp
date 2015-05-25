@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="ProjetZ" />
+		<Option platforms="Windows;Mac;" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option platforms="Windows;Mac;" />
+				<Option output="/ISN/ProjetZ/bin/Debug/ProjetZ" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="/ISN/ProjetZ/bin/Debug" />
+				<Option object_output="/ISN/ProjetZ/objs" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option use_console_runner="0" />
+				<Compiler>
+					<Add option="-Wshadow" />
+					<Add option="-Winit-self" />
+					<Add option="-Wredundant-decls" />
+					<Add option="-Wundef" />
+					<Add option="-Wunreachable-code" />
+					<Add option="-Wmissing-declarations" />
+					<Add option="-Wmissing-include-dirs" />
+					<Add option="-Wswitch-enum" />
+					<Add option="-Wswitch-default" />
+					<Add option="-Wmain" />
+					<Add option="-Wextra" />
+					<Add option="-Wall" />
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option platforms="Windows;" />
+				<Option output="/ISN/ProjetZ/bin/Release/ProjetZ" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="/ISN/ProjetZ/bin/Release" />
+				<Option object_output="obj/Release/" />
+				<Option type="0" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-fomit-frame-pointer" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="IOEditeur.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="IOEditeur.h" />
+		<Unit filename="IOcredits.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="IOcredits.h" />
+		<Unit filename="IOmain.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="IOmain.h" />
+		<Unit filename="IOoptions.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="IOoptions.h" />
+		<Unit filename="JeuSDL.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="JeuSDL.h" />
+		<Unit filename="bin/Debug/ressources/credits.cit" />
+		<Unit filename="bin/Debug/ressources/level.lvl" />
+		<Unit filename="bin/Debug/ressources/levelUser.lvl" />
+		<Unit filename="bin/Debug/ressources/settings.ini" />
+		<Unit filename="callback.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="callback.h" />
+		<Unit filename="collision.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="collision.h" />
+		<Unit filename="editeur.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="editeur.h" />
+		<Unit filename="interfaceMain.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="interfaceMain.h" />
+		<Unit filename="jeu.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="jeu.h" />
+		<Unit filename="main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="main.h" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+			<lib_finder disable_auto="1" />
+			<DoxyBlocks>
+				<comment_style block="0" line="0" />
+				<doxyfile_project />
+				<doxyfile_build />
+				<doxyfile_warnings />
+				<doxyfile_output />
+				<doxyfile_dot />
+				<general />
+			</DoxyBlocks>
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

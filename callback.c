@@ -15,10 +15,11 @@ Jean-Loup BEAUSSART & Dylan GUERVILLE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <md5.h>
-#include <winsock.h>
-#include <mysql.h>
-#include <gtk\gtk.h>
+#include <openssl/md5.h>
+#include <string.h> // Pour le MD5
+#include <arpa/inet.h>
+#include <mysql/mysql.h>
+#include <gtk/gtk.h>
 #include <time.h>
 #include <SDL2/SDL.h>
 #include <math.h>
@@ -1285,9 +1286,9 @@ void ConnexionMySql(GtkWidget *pWidget, gpointer pData)
     Joueur *pJoueur = (Joueur*)g_list_nth_data((GList*)pData, 6);
     GtkWidget *pEntryPseudo = (GtkWidget *)g_list_nth_data((GList*)pData, 7), *pEntryMDP = (GtkWidget *)g_list_nth_data((GList*)pData, 8);
 
-    /* On déclare des structures pour utiliser les fonctions de la bibliothèque md5 */
-    md5_state_t etat;
-    md5_byte_t mdp[100], digest[17];
+    //Calcul du hash MD5 du mot de passe
+
+    char mdp[100], digest[17];
 
     int i=0;	//Petit compteur
 
@@ -1299,9 +1300,13 @@ void ConnexionMySql(GtkWidget *pWidget, gpointer pData)
     sprintf(pJoueur->pseudo, gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(pEntryPseudo)));
     sprintf((char*)mdp, gtk_entry_buffer_get_text(GTK_ENTRY_BUFFER(pEntryMDP)));
 
-    md5_init(&etat);	//On initialise l'état du crypteur md5
-    md5_append(&etat, mdp, strlen((char*)mdp));	//On ajoute le mot de passe à l'empreinte md5
-    md5_finish(&etat, digest);	//On récupère l'empreinte finale après avoir ajouté toutes les chaînes (ici seulement le mot de passe)
+    // Calcul du hash
+    char unsigned md5[MD5_DIGEST_LENGTH] = {0};
+    MD5((const unsigned char *)mdp, strlen(mdp), md5);
+
+    for (i=0; i < MD5_DIGEST_LENGTH; i++) {
+        sprintf(digest + 2*i, "%02x", md5[i]);
+    }
 
     digest[16] = '\0';	//On ajoute le caractère de fin de chaîne après les 16 premiers caractères
 
